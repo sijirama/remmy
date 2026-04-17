@@ -1,0 +1,22 @@
+# Claude
+.claude/
+
+# OS
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+
+# IDEs
+.vscode/
+.idea/
+*.sublime-project
+*.sublime-workspace
+
+# Env
+.env
+.env*.local
+
+# Build artifacts
+dist/
+node_modules/

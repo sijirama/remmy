@@ -1,0 +1,641 @@
+Perfect. So the chat is a full Gemini conversation where the logs are a tool Gemini can call — it decides when to search your logs, retrieves relevant chunks from pgvector, and weaves it into the response naturally. That's a cleaner UX than forced RAG anyway.
+
+Now I have everything. Writing the full implementation doc now 👇
+
+---
+
+```markdown
+# Remmy — Implementation Plan
+
+> Personal multimodal daily logger with audio and image capture,
+> AI-powered understanding, pgvector semantic storage, and Gemini-powered
+> chat with access to your logs as a tool.
+
+---
+
+## Tech Stack
+
+### Frontend
+- React (PWA, mobile-first from day 1)
+- shadcn/ui — component library
+- lucide-animated — icons
+- Light theme throughout
+- Service worker + web manifest for PWA install
+
+### Backend
+- Go — already structured
+- Gin/Echo (existing setup)
+- PostgreSQL with pgvector extension
+- Cloudflare R2 — audio and image file storage
+- Gemini API — understanding layer + chat
+
+### Infrastructure
+- Docker — switch base postgres image to pgvector
+- R2 already configured
+- All AI models are empty interfaces / whitebox stubs unless specified
+
+---
+
+## Phase 0 — Infrastructure Setup
+
+### 0.1 Switch Postgres to pgvector
+
+Update docker-compose.yml to use pgvector image:
+
+```yaml
+services:
+  db:
+    image: pgvector/pgvector:pg16
+    environment:
+      POSTGRES_USER: remmy
+      POSTGRES_PASSWORD: remmy
+      POSTGRES_DB: remmy
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+```
+
+Enable extension in migration:
+
+```sql
+CREATE EXTENSION IF NOT EXISTS vector;
+```
+
+### 0.2 Database Schema
+
+```sql
+-- logs table
+CREATE TABLE logs (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID NOT NULL,
+  type VARCHAR(10) NOT NULL CHECK (type IN ('audio', 'image')),
+  raw_file_url TEXT NOT NULL,
+  raw_transcript TEXT,
+  raw_description TEXT,
+  rewritten_content TEXT,
+  embedding vector(1536),
+  habit_matches TEXT[],
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  logged_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- habits table (schema only, UI skipped for now)
+CREATE TABLE habits (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID NOT NULL,
+  name VARCHAR(100) NOT NULL,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- index for vector similarity search
+CREATE INDEX ON logs USING ivfflat (embedding vector_cosine_ops)
+  WITH (lists = 100);
+
+-- index for date-based feed queries
+CREATE INDEX ON logs (user_id, logged_at DESC);
+```
+
+### 0.3 R2 Bucket Structure
+
+```
+remmy/
+  audio/
+    {user_id}/
+      {log_id}.webm
+  images/
+    {user_id}/
+      {log_id}.jpg
+```
+
+### 0.4 Environment Variables
+
+```env
+DATABASE_URL=postgres://remmy:remmy@localhost:5432/remmy
+R2_ACCOUNT_ID=
+R2_ACCESS_KEY_ID=
+R2_SECRET_ACCESS_KEY=
+R2_BUCKET_NAME=remmy
+R2_PUBLIC_URL=
+GEMINI_API_KEY=
+```
+
+---
+
+## Phase 1 — File Ingestion API
+
+### 1.1 Upload Endpoint
+
+```
+POST /api/v1/logs/audio
+Content-Type: multipart/form-data
+Body: file (audio/webm or audio/mp4)
+
+POST /api/v1/logs/image
+Content-Type: multipart/form-data
+Body: file (image/jpeg or image/png or image/webp)
+```
+
+**Flow:**
+1. Receive file
+2. Validate type and size (audio max 50mb, image max 20mb)
+3. Generate log UUID
+4. Upload raw file to R2 at correct path
+5. Create log record in postgres with status pending
+6. Enqueue processing job
+7. Return log ID and status immediately (async processing)
+
+**Response:**
+```json
+{
+  "id": "uuid",
+  "type": "audio",
+  "status": "processing",
+  "created_at": "2025-01-01T00:00:00Z"
+}
+```
+
+### 1.2 Job Queue
+
+Use a simple Go channel-based worker pool for now — no external queue needed at this scale.
+
+```go
+type ProcessingJob struct {
+    LogID   string
+    LogType string
+    FileURL string
+}
+```
+
+Worker picks up job → runs pipeline → updates log record
+
+### 1.3 Feed Endpoint
+
+```
+GET /api/v1/logs?date=2025-01-01
+```
+
+Returns all logs for a given day ordered chronologically.
+
+```json
+{
+  "logs": [
+    {
+      "id": "uuid",
+      "type": "audio",
+      "raw_file_url": "https://...",
+      "rewritten_content": "...",
+      "habit_matches": ["gym", "reading"],
+      "logged_at": "2025-01-01T09:14:00Z",
+      "status": "ready"
+    }
+  ]
+}
+```
+
+---
+
+## Phase 2 — ASR Pipeline (Audio)
+
+### 2.1 ASR Interface
+
+```go
+type ASRModel interface {
+    Transcribe(ctx context.Context, audioURL string) (string, error)
+}
+```
+
+### 2.2 Stub Implementation
+
+```go
+type StubASR struct{}
+
+func (s *StubASR) Transcribe(ctx context.Context, audioURL string) (string, error) {
+    return "this is a placeholder transcript for development purposes", nil
+}
+```
+
+### 2.3 Audio Pipeline
+
+```
+audio file in R2
+    → ASRModel.Transcribe()
+    → raw_transcript saved to logs table
+    → passed to understanding pipeline
+```
+
+---
+
+## Phase 3 — Vision Pipeline (Images)
+
+### 3.1 Vision Interface
+
+```go
+type VisionModel interface {
+    Describe(ctx context.Context, imageURL string) (string, error)
+}
+```
+
+### 3.2 Stub Implementation
+
+```go
+type StubVision struct{}
+
+func (s *StubVision) Describe(ctx context.Context, imageURL string) (string, error) {
+    return "this is a placeholder image description for development purposes", nil
+}
+```
+
+### 3.3 Image Pipeline
+
+```
+image file in R2
+    → VisionModel.Describe()
+    → raw_description saved to logs table
+    → passed to understanding pipeline
+```
+
+---
+
+## Phase 4 — Understanding Layer
+
+This is the core intelligence layer. Takes raw transcript or description,
+rewrites it into clean structured content, chunks it, embeds it, and
+stores in pgvector.
+
+### 4.1 Understanding Interface
+
+```go
+type UnderstandingModel interface {
+    Rewrite(ctx context.Context, raw string, logType string) (string, error)
+    Embed(ctx context.Context, text string) ([]float32, error)
+}
+```
+
+### 4.2 Gemini Implementation
+
+Use Gemini for both rewrite and embedding.
+
+**Rewrite prompt:**
+
+```
+You are processing a personal daily log entry. The user has either
+spoken a voice memo or captured an image. Your job is to:
+
+1. Rewrite the raw content into clean, structured prose that preserves
+   all meaning and detail but reads clearly
+2. Extract any habits or activities mentioned
+3. Return a JSON object with:
+   - rewritten: string (the clean rewritten content)
+   - habits: string[] (list of habits or activities detected)
+
+Raw content type: {audio|image}
+Raw content: {raw_transcript_or_description}
+
+Return only valid JSON. No preamble.
+```
+
+**Chunking strategy:**
+- If rewritten content is under 500 tokens — single chunk
+- If over 500 tokens — split on sentence boundaries into 300 token
+  chunks with 50 token overlap
+
+**Embedding:**
+- Embed each chunk using Gemini text-embedding-004
+- Store each chunk as a separate vector row linked to log ID
+
+### 4.3 Understanding Pipeline
+
+```
+raw transcript or description
+    → UnderstandingModel.Rewrite()
+    → rewritten_content saved
+    → habit_matches extracted and saved
+    → chunk rewritten content
+    → UnderstandingModel.Embed() per chunk
+    → vectors stored in pgvector
+    → log status updated to ready
+```
+
+### 4.4 Vector Storage Table
+
+```sql
+CREATE TABLE log_chunks (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  log_id UUID REFERENCES logs(id) ON DELETE CASCADE,
+  chunk_index INTEGER NOT NULL,
+  chunk_text TEXT NOT NULL,
+  embedding vector(768),
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE INDEX ON log_chunks USING ivfflat (embedding vector_cosine_ops)
+  WITH (lists = 100);
+```
+
+Note: use 768 dimensions for Gemini text-embedding-004.
+Update logs table embedding column to vector(768) too.
+
+---
+
+## Phase 5 — Frontend (Mobile-First PWA)
+
+### 5.1 PWA Setup
+
+Add to vite.config.ts or use vite-plugin-pwa:
+
+```json
+{
+  "name": "Remmy",
+  "short_name": "Remmy",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#ffffff",
+  "icons": [...]
+}
+```
+
+### 5.2 Pages
+
+```
+/           → Feed (today's logs)
+/chat       → Gemini chat with log tool access
+/digest     → Day digest view + email send
+```
+
+### 5.3 Feed Page
+
+**Layout — mobile first, max-width 480px centered on desktop:**
+
+```
+┌─────────────────────────────┐
+│  ← today            🎙 📷  │  ← sticky header
+├─────────────────────────────│
+│  gym  reading  water  ...   │  ← habits strip (scrollable)
+├─────────────────────────────│
+│  earlier today              │
+│                             │
+│  09:14                      │
+│  [audio waveform player]    │
+│  ✓ gym                      │
+│                             │
+│  11:32                      │
+│  [image thumbnail]          │
+│                             │
+│  ...                        │
+└─────────────────────────────┘
+```
+
+**Components needed:**
+- `FeedHeader` — date nav + mic + camera icon buttons
+- `HabitsStrip` — horizontal scrollable habit chips
+- `AudioEntry` — waveform player + habit matches, tap to expand
+- `ImageEntry` — thumbnail + habit matches, tap to expand
+- `LogDetail` — full page view of a log, shows rewritten content +
+  raw transcript/description + habit matches
+- `DateNavigator` — back/forward by day
+
+**Capture flow:**
+- Mic button → browser MediaRecorder API → record audio →
+  on stop upload to POST /api/v1/logs/audio
+- Camera button → input type=file accept=image/* capture=camera →
+  on select upload to POST /api/v1/logs/image
+- Both show an inline loading state in the feed while processing
+
+**Responsive rules:**
+- Font size minimum 16px (prevents iOS zoom on input focus)
+- Touch targets minimum 44px
+- Bottom safe area padding for iPhone home indicator
+- Sticky header uses backdrop-filter for scroll blur effect
+
+### 5.4 Audio Player Component
+
+Custom lightweight waveform player using Web Audio API:
+- Static waveform bars generated from amplitude data
+- Play/pause toggle
+- Duration display
+- No external audio library needed
+
+### 5.5 Log Detail Page
+
+```
+/logs/{id}
+
+┌─────────────────────────────┐
+│  ← back           09:14am   │
+├─────────────────────────────│
+│  [audio player or image]    │
+│                             │
+│  what remmy understood      │
+│  ─────────────────────────  │
+│  Clean rewritten content    │
+│  from the understanding     │
+│  layer lives here...        │
+│                             │
+│  raw transcript             │
+│  ─────────────────────────  │
+│  original raw text here...  │
+│                             │
+│  habits detected            │
+│  ✓ gym  ✓ reading           │
+└─────────────────────────────┘
+```
+
+---
+
+## Phase 6 — Gemini Chat with Log Tool
+
+### 6.1 Chat Endpoint
+
+```
+POST /api/v1/chat
+Body: {
+  "message": "string",
+  "history": [{ "role": "user|model", "content": "string" }]
+}
+```
+
+### 6.2 Log Search Tool
+
+Define a tool Gemini can call to search logs:
+
+```go
+type LogSearchTool struct {
+    Query     string `json:"query"`
+    DateFrom  string `json:"date_from,omitempty"`
+    DateTo    string `json:"date_to,omitempty"`
+    Limit     int    `json:"limit,omitempty"`
+}
+```
+
+**Tool execution:**
+1. Gemini decides to call log_search with a query
+2. Backend embeds the query using Gemini text-embedding-004
+3. Runs cosine similarity search against log_chunks in pgvector
+4. Returns top K chunks with their log metadata
+5. Gemini incorporates results into response
+
+```sql
+SELECT
+  lc.chunk_text,
+  l.type,
+  l.logged_at,
+  l.habit_matches,
+  1 - (lc.embedding <=> $1) AS similarity
+FROM log_chunks lc
+JOIN logs l ON l.id = lc.log_id
+WHERE l.user_id = $2
+  AND ($3::date IS NULL OR l.logged_at::date >= $3)
+  AND ($4::date IS NULL OR l.logged_at::date <= $4)
+ORDER BY lc.embedding <=> $1
+LIMIT $5;
+```
+
+### 6.3 System Prompt
+
+```
+You are Remmy, a personal assistant with access to the user's daily logs.
+The user logs their day through voice memos and images. You have a tool
+called log_search that lets you search through their logs semantically.
+
+Use log_search whenever the user asks about:
+- Something they did, said, or captured
+- Patterns in their habits or activities
+- Anything from a specific day or time period
+- Questions about themselves
+
+Be conversational, warm, and concise. The user is on mobile so keep
+responses short unless they ask for detail. Never make up log content
+— only reference what log_search returns.
+```
+
+### 6.4 Chat UI
+
+```
+/chat
+
+┌─────────────────────────────┐
+│  remmy                   ✕  │  ← header
+├─────────────────────────────│
+│                             │
+│  [message bubble]           │
+│               [user bubble] │
+│  [message bubble]           │
+│               [user bubble] │
+│                             │
+├─────────────────────────────│
+│  [input field]        send  │  ← sticky bottom
+└─────────────────────────────┘
+```
+
+- Full conversation history sent on every request
+- Streaming response from Gemini (use SSE or chunked transfer)
+- Show typing indicator while waiting
+- Input fixed to bottom, above keyboard on mobile
+  (use CSS env(safe-area-inset-bottom))
+
+---
+
+## Phase 7 — Digest
+
+### 7.1 Digest Endpoint
+
+```
+GET /api/v1/digest?date=2025-01-01
+```
+
+Generates a digest for the given day by:
+1. Fetching all logs for that day
+2. Passing all rewritten content to Gemini
+3. Gemini produces a structured summary
+
+**Digest prompt:**
+
+```
+You are summarising a user's day from their personal log entries.
+Below are all their log entries for {date}. Produce a warm, personal
+summary covering:
+
+1. What they did today (2-3 sentences)
+2. Habits completed vs missed
+3. One interesting pattern or observation
+4. A one-line reflection to close
+
+Keep it under 200 words. Warm and personal, not clinical.
+
+Entries:
+{all_rewritten_content}
+
+Habits being tracked: {habit_names}
+```
+
+### 7.2 Email Send
+
+```
+POST /api/v1/digest/send
+Body: { "date": "2025-01-01", "email": "user@email.com" }
+```
+
+Use any simple Go SMTP library or Resend API.
+Email is plain text or minimal HTML — no heavy templates.
+
+### 7.3 Digest UI
+
+```
+/digest
+
+┌─────────────────────────────┐
+│  ← today's digest           │
+├─────────────────────────────│
+│  friday, 17 jan             │
+│                             │
+│  [digest text from gemini]  │
+│                             │
+│  habits                     │
+│  ✓ gym  ✓ reading           │
+│  ✗ water  ✗ no sugar        │
+│                             │
+│  [send to email]  button    │
+└─────────────────────────────┘
+```
+
+---
+
+## Implementation Order for Claude Code
+
+Build in this exact order — each phase is testable before moving to next:
+
+1. Phase 0 — docker pgvector, schema migrations, env setup
+2. Phase 1 — upload endpoints, R2 storage, job queue, feed endpoint
+3. Phase 2 — stub ASR interface and pipeline
+4. Phase 3 — stub vision interface and pipeline
+5. Phase 4 — Gemini understanding layer, chunking, pgvector storage
+6. Phase 5 — feed UI, PWA setup, audio/image capture, log detail page
+7. Phase 6 — Gemini chat with log search tool, chat UI
+8. Phase 7 — digest generation, email send, digest UI
+
+---
+
+## Notes for Claude Code
+
+- All AI model interfaces must be defined as Go interfaces — never call
+  models directly from handlers, always go through the interface
+- The stub implementations must be the default until real models are
+  wired in — never block on model availability
+- Mobile first means every component is designed at 375px width first,
+  then scaled up — not the other way around
+- All API responses must include proper error shapes:
+  ```json
+  { "error": "message", "code": "error_code" }
+  ```
+- Use pgvector cosine distance operator (<=>), not L2
+- R2 uploads should be server-side only — never expose R2 credentials
+  to the frontend
+- All file uploads go through the Go backend, not directly to R2
+- PWA must work offline for the feed (cache last 7 days of logs)
+  using service worker cache strategy
+```
+
+---
+
+That's the full doc. Hand it straight to Claude Code and it has everything it needs to build phase by phase. Come back when you hit phase 4 or 6 — those are the two interesting engineering phases worth discussing before you build them. 🎯
