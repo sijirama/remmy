@@ -58,6 +58,7 @@ export default function Dashboard() {
       setLogs(data);
     } catch {
       setLogs([]);
+      toast.error('failed to load logs');
     } finally {
       setLoading(false);
     }

@@ -94,14 +94,6 @@ func main() {
 			apiAuth.GET("/check-username", middleware.OptionalAuthMiddleware(), endpoints.CheckUsername)
 		}
 
-		// ── Upload (legacy) ──
-		upload := api.Group("/upload")
-		upload.Use(middleware.AuthMiddleware())
-		{
-			upload.POST("/avatar", endpoints.UploadAvatar)
-			upload.POST("/media", endpoints.UploadMedia)
-		}
-
 		// ── Logs ──
 		logs := api.Group("/v1/logs")
 		logs.Use(middleware.AuthMiddleware())

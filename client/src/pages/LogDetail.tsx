@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { ChevronLeft } from 'lucide-react';
+import { toast } from 'sonner';
 import { fetchLog } from '../lib/logs';
 import type { Log } from '../lib/types';
 import AudioPlayer from '../components/feed/AudioPlayer';
@@ -29,7 +30,7 @@ export default function LogDetail() {
     if (!id) return;
     fetchLog(id)
       .then(setLog)
-      .catch(() => navigate('/me'))
+      .catch(() => { toast.error('log not found'); navigate('/me'); })
       .finally(() => setLoading(false));
   }, [id, navigate]);
 

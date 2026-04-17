@@ -71,10 +71,6 @@ func SearchLogs(ctx context.Context, userID uint, params LogSearchParams) ([]Log
 	query += ` ORDER BY lc.embedding <=> ? LIMIT ?`
 	args = append(args, vec, params.Limit)
 
-	var chunkCount int64
-	database.DB.Raw("SELECT COUNT(*) FROM log_chunks WHERE log_id IN (SELECT id FROM logs WHERE user_id = ?)", userID).Scan(&chunkCount)
-	log.Printf("[Search] user %d has %d total log chunks", userID, chunkCount)
-
 	if err := database.DB.Raw(query, args...).Scan(&results).Error; err != nil {
 		return nil, fmt.Errorf("vector search: %w", err)
 	}
