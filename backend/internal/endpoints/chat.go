@@ -125,8 +125,29 @@ func Chat(c *gin.Context) {
 	var parts []genai.Part
 	parts = append(parts, genai.Text(req.Message))
 
-	resp, err := cs.SendMessage(c.Request.Context(), parts...)
-	if err != nil {
+	var resp *genai.GenerateContentResponse
+	var sendErr error
+	for attempt := 0; attempt < 5; attempt++ {
+		if attempt > 0 {
+			wait := time.Duration(1<<uint(attempt)) * time.Second
+			select {
+			case <-c.Request.Context().Done():
+				c.JSON(http.StatusInternalServerError, gin.H{"error": "request cancelled", "code": "cancelled"})
+				return
+			case <-time.After(wait):
+			}
+		}
+		resp, sendErr = cs.SendMessage(c.Request.Context(), parts...)
+		if sendErr == nil {
+			break
+		}
+		log.Printf("[Chat] SendMessage attempt %d failed for user %d: %v", attempt+1, userID, sendErr)
+		if !strings.Contains(sendErr.Error(), "429") {
+			break
+		}
+	}
+	if sendErr != nil {
+		log.Printf("[Chat] SendMessage failed for user %d after retries: %v", userID, sendErr)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "AI request failed", "code": "ai_error"})
 		return
 	}
