@@ -43,6 +43,9 @@ export default function Dashboard() {
   const [date, setDate] = useState(new Date());
   const [logs, setLogs] = useState<Log[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [hasMore, setHasMore] = useState(false);
+  const [offset, setOffset] = useState(0);
   const [recordingState, setRecordingState] = useState<RecordingState>('idle');
   const [imageUploading, setImageUploading] = useState(false);
 
@@ -50,25 +53,49 @@ export default function Dashboard() {
   const chunksRef = useRef<Blob[]>([]);
   const imageInputRef = useRef<HTMLInputElement>(null);
   const pollTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const sentinelRef = useRef<HTMLDivElement>(null);
+  const observerRef = useRef<IntersectionObserver | null>(null);
 
-  const loadLogs = useCallback(async (d: Date) => {
-    setLoading(true);
+  const loadLogs = useCallback(async (d: Date, off = 0) => {
+    if (off === 0) setLoading(true);
+    else setLoadingMore(true);
     try {
-      const data = await fetchLogs(toDateStr(d));
-      setLogs(data);
+      const page = await fetchLogs(toDateStr(d), off);
+      setLogs(prev => off === 0 ? page.logs : [...prev, ...page.logs]);
+      setHasMore(page.hasMore);
+      setOffset(off + page.logs.length);
     } catch {
-      setLogs([]);
+      if (off === 0) setLogs([]);
       toast.error('failed to load logs');
     } finally {
-      setLoading(false);
+      if (off === 0) setLoading(false);
+      else setLoadingMore(false);
     }
   }, []);
 
+  // Reset and reload when date changes
   useEffect(() => {
-    loadLogs(date);
+    setOffset(0);
+    setHasMore(false);
+    loadLogs(date, 0);
   }, [date, loadLogs]);
 
-  // Poll to refresh processing logs
+  // Infinite scroll sentinel
+  useEffect(() => {
+    if (observerRef.current) observerRef.current.disconnect();
+    if (!sentinelRef.current || !hasMore || loadingMore) return;
+
+    observerRef.current = new IntersectionObserver(entries => {
+      if (entries[0].isIntersecting && hasMore && !loadingMore) {
+        loadLogs(date, offset);
+      }
+    }, { threshold: 0.1 });
+
+    observerRef.current.observe(sentinelRef.current);
+    return () => observerRef.current?.disconnect();
+  }, [hasMore, loadingMore, offset, date, loadLogs]);
+
+  // Poll processing logs
   useEffect(() => {
     const processingIds = logs.filter(l => l.status === 'processing').map(l => l.id);
     if (processingIds.length === 0) return;
@@ -351,7 +378,7 @@ export default function Dashboard() {
               </motion.div>
             ) : (
               <AnimatePresence initial={false}>
-                {[...logs].sort((a, b) => new Date(b.logged_at).getTime() - new Date(a.logged_at).getTime()).map(log => (
+                {logs.map(log => (
                   <motion.div
                     key={log.id}
                     initial={{ opacity: 0, y: 8 }}
@@ -363,6 +390,15 @@ export default function Dashboard() {
                   </motion.div>
                 ))}
               </AnimatePresence>
+            )}
+
+            {/* Infinite scroll sentinel */}
+            {!loading && hasMore && (
+              <div ref={sentinelRef} className="flex justify-center py-4">
+                {loadingMore && (
+                  <span className="w-5 h-5 rounded-full border-2 border-violet-200 border-t-violet-500 animate-spin block" />
+                )}
+              </div>
             )}
           </div>
 

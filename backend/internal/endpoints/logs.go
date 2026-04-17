@@ -3,6 +3,7 @@ package endpoints
 import (
 	"fmt"
 	"net/http"
+	"strconv"
 	"time"
 
 	"remmy/internal/database"
@@ -120,6 +121,8 @@ func UploadImageLog(c *gin.Context) {
 	})
 }
 
+const defaultPageSize = 20
+
 func GetLogs(c *gin.Context) {
 	userID := c.MustGet("userID").(uint)
 	dateStr := c.Query("date")
@@ -136,19 +139,36 @@ func GetLogs(c *gin.Context) {
 		}
 	}
 
+	offset := 0
+	if o := c.Query("offset"); o != "" {
+		if v, err := strconv.Atoi(o); err == nil && v >= 0 {
+			offset = v
+		}
+	}
+
 	start := time.Date(date.Year(), date.Month(), date.Day(), 0, 0, 0, 0, time.UTC)
 	end := start.Add(24 * time.Hour)
 
+	base := database.DB.Model(&models.Log{}).
+		Where("user_id = ? AND logged_at >= ? AND logged_at < ?", userID, start, end)
+
+	var total int64
+	base.Count(&total)
+
 	var logs []models.Log
-	if err := database.DB.
-		Where("user_id = ? AND logged_at >= ? AND logged_at < ?", userID, start, end).
-		Order("logged_at ASC").
+	if err := base.
+		Order("logged_at DESC").
+		Limit(defaultPageSize).
+		Offset(offset).
 		Find(&logs).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to fetch logs", "code": "db_error"})
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"logs": logs})
+	c.JSON(http.StatusOK, gin.H{
+		"logs":     logs,
+		"has_more": int64(offset+defaultPageSize) < total,
+	})
 }
 
 func GetLogByID(c *gin.Context) {

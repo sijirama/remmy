@@ -1,9 +1,19 @@
 import api from './api';
 import type { Log, UploadResponse } from './types';
 
-export async function fetchLogs(date?: string): Promise<Log[]> {
-  const res = await api.get('v1/logs', { params: date ? { date } : {} });
-  return res.data.logs ?? [];
+export interface LogsPage {
+  logs: Log[];
+  hasMore: boolean;
+}
+
+export async function fetchLogs(date?: string, offset = 0): Promise<LogsPage> {
+  const params: Record<string, string | number> = { offset };
+  if (date) params.date = date;
+  const res = await api.get('v1/logs', { params });
+  return {
+    logs: res.data.logs ?? [],
+    hasMore: res.data.has_more ?? false,
+  };
 }
 
 export async function fetchLog(id: string): Promise<Log> {

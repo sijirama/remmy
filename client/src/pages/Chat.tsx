@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useLayoutEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { ChevronLeft, Send } from 'lucide-react';
@@ -62,19 +62,76 @@ export default function Chat() {
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
   const [historyLoading, setHistoryLoading] = useState(true);
-  const bottomRef = useRef<HTMLDivElement>(null);
-  const inputRef = useRef<HTMLTextAreaElement>(null);
+  const [hasOlder, setHasOlder] = useState(false);
+  const [loadingOlder, setLoadingOlder] = useState(false);
 
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
+  const bottomRef = useRef<HTMLDivElement>(null);
+  const sentinelRef = useRef<HTMLDivElement>(null);
+  const observerRef = useRef<IntersectionObserver | null>(null);
+  const prevScrollHeightRef = useRef(0);
+  const isPrependingRef = useRef(false);
+
+  // Scroll to bottom on new messages (not when prepending older ones)
+  useEffect(() => {
+    if (!isPrependingRef.current) {
+      bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
+    }
+  }, [history, loading]);
+
+  // Restore scroll position after prepending older messages
+  useLayoutEffect(() => {
+    if (isPrependingRef.current && scrollContainerRef.current) {
+      const container = scrollContainerRef.current;
+      container.scrollTop = container.scrollHeight - prevScrollHeightRef.current;
+      isPrependingRef.current = false;
+    }
+  }, [history]);
+
+  // Initial history load
   useEffect(() => {
     getChatHistory()
-      .then(setHistory)
+      .then(page => {
+        setHistory(page.messages);
+        setHasOlder(page.hasMore);
+      })
       .catch(() => {})
       .finally(() => setHistoryLoading(false));
   }, []);
 
+  // Observe sentinel for loading older messages
   useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [history, loading]);
+    if (observerRef.current) observerRef.current.disconnect();
+    if (!sentinelRef.current || !hasOlder || loadingOlder || historyLoading) return;
+
+    observerRef.current = new IntersectionObserver(entries => {
+      if (entries[0].isIntersecting) loadOlderMessages();
+    }, { threshold: 0.1 });
+
+    observerRef.current.observe(sentinelRef.current);
+    return () => observerRef.current?.disconnect();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [hasOlder, loadingOlder, historyLoading, history]);
+
+  const loadOlderMessages = async () => {
+    if (loadingOlder || !hasOlder || history.length === 0) return;
+    const oldestId = history[0].id;
+    if (!oldestId) return;
+
+    setLoadingOlder(true);
+    try {
+      const page = await getChatHistory(oldestId);
+      if (page.messages.length === 0) { setHasOlder(false); return; }
+      prevScrollHeightRef.current = scrollContainerRef.current?.scrollHeight ?? 0;
+      isPrependingRef.current = true;
+      setHistory(prev => [...page.messages, ...prev]);
+      setHasOlder(page.hasMore);
+    } catch {
+      toast.error('failed to load older messages');
+    } finally {
+      setLoadingOlder(false);
+    }
+  };
 
   const submit = async () => {
     const text = input.trim();
@@ -86,7 +143,9 @@ export default function Chat() {
     setLoading(true);
 
     try {
-      const response = await sendMessage(text, history);
+      // Send only last 40 messages as context to avoid bloating the request
+      const context = history.slice(-40);
+      const response = await sendMessage(text, context);
       setHistory(prev => [...prev, { role: 'model', content: response }]);
     } catch {
       toast.error('something went wrong');
@@ -133,8 +192,17 @@ export default function Chat() {
       </div>
 
       {/* Messages */}
-      <div className="relative z-10 flex-1 overflow-y-auto px-5 py-4">
+      <div ref={scrollContainerRef} className="relative z-10 flex-1 overflow-y-auto px-5 py-4">
         <div className="max-w-3xl mx-auto flex flex-col gap-4">
+
+          {/* Top sentinel for infinite scroll */}
+          {hasOlder && (
+            <div ref={sentinelRef} className="flex justify-center py-2">
+              {loadingOlder && (
+                <span className="w-4 h-4 rounded-full border-2 border-violet-200 border-t-violet-500 animate-spin block" />
+              )}
+            </div>
+          )}
 
           {historyLoading ? (
             <div className="flex items-center justify-center py-24">
@@ -153,7 +221,7 @@ export default function Chat() {
 
           <AnimatePresence initial={false}>
             {history.map((msg, i) => (
-              <Message key={i} msg={msg} />
+              <Message key={msg.id ?? `local-${i}`} msg={msg} />
             ))}
           </AnimatePresence>
 
@@ -169,7 +237,6 @@ export default function Chat() {
       >
         <div className="max-w-3xl mx-auto flex items-end gap-3">
           <textarea
-            ref={inputRef}
             value={input}
             onChange={e => setInput(e.target.value)}
             onKeyDown={onKeyDown}

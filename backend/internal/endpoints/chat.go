@@ -9,6 +9,8 @@ import (
 	"strings"
 	"time"
 
+	"strconv"
+
 	"remmy/internal/database"
 	"remmy/internal/models"
 	"remmy/internal/services/ai"
@@ -58,25 +60,36 @@ var logSearchTool = &genai.Tool{
 	},
 }
 
+const chatPageSize = 40
+
 func GetChatHistory(c *gin.Context) {
 	userID := c.MustGet("userID").(uint)
 
+	q := database.DB.Where("user_id = ?", userID)
+	if beforeID := c.Query("before_id"); beforeID != "" {
+		if id, err := strconv.ParseUint(beforeID, 10, 64); err == nil {
+			q = q.Where("id < ?", id)
+		}
+	}
+
 	var messages []models.ChatMessage
-	if err := database.DB.
-		Where("user_id = ?", userID).
+	if err := q.
 		Order("created_at DESC").
-		Limit(40).
+		Limit(chatPageSize).
 		Find(&messages).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to fetch history", "code": "db_error"})
 		return
 	}
 
-	// Reverse so oldest is first
+	// Reverse so oldest is first for display
 	for i, j := 0, len(messages)-1; i < j; i, j = i+1, j-1 {
 		messages[i], messages[j] = messages[j], messages[i]
 	}
 
-	c.JSON(http.StatusOK, gin.H{"messages": messages})
+	c.JSON(http.StatusOK, gin.H{
+		"messages": messages,
+		"has_more": len(messages) >= chatPageSize,
+	})
 }
 
 func Chat(c *gin.Context) {
