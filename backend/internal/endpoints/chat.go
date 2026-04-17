@@ -6,6 +6,8 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"strings"
+	"time"
 
 	"remmy/internal/services/ai"
 	"remmy/internal/services/search"
@@ -148,13 +150,31 @@ func runToolLoop(ctx context.Context, cs *genai.ChatSession, resp *genai.Generat
 			toolResult = map[string]interface{}{"error": err.Error(), "results": []interface{}{}}
 		}
 
-		// Send result back to Gemini
-		resp, err = cs.SendMessage(ctx, genai.FunctionResponse{
-			Name:     funcCall.Name,
-			Response: toolResult,
-		})
-		if err != nil {
-			return "", fmt.Errorf("send tool response: %w", err)
+		// Send result back to Gemini with retry on 429
+		var sendErr error
+		for attempt := 0; attempt < 5; attempt++ {
+			if attempt > 0 {
+				wait := time.Duration(1<<uint(attempt)) * time.Second
+				select {
+				case <-ctx.Done():
+					return "", ctx.Err()
+				case <-time.After(wait):
+				}
+			}
+			resp, sendErr = cs.SendMessage(ctx, genai.FunctionResponse{
+				Name:     funcCall.Name,
+				Response: toolResult,
+			})
+			if sendErr == nil {
+				break
+			}
+			if !strings.Contains(sendErr.Error(), "429") {
+				break
+			}
+			log.Printf("[Chat] 429 on SendMessage attempt %d, retrying", attempt+1)
+		}
+		if sendErr != nil {
+			return "", fmt.Errorf("send tool response: %w", sendErr)
 		}
 	}
 }
