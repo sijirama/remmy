@@ -9,6 +9,8 @@ import (
 	"strings"
 	"time"
 
+	"remmy/internal/database"
+	"remmy/internal/models"
 	"remmy/internal/services/ai"
 	"remmy/internal/services/search"
 
@@ -56,6 +58,27 @@ var logSearchTool = &genai.Tool{
 	},
 }
 
+func GetChatHistory(c *gin.Context) {
+	userID := c.MustGet("userID").(uint)
+
+	var messages []models.ChatMessage
+	if err := database.DB.
+		Where("user_id = ?", userID).
+		Order("created_at DESC").
+		Limit(40).
+		Find(&messages).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to fetch history", "code": "db_error"})
+		return
+	}
+
+	// Reverse so oldest is first
+	for i, j := 0, len(messages)-1; i < j; i, j = i+1, j-1 {
+		messages[i], messages[j] = messages[j], messages[i]
+	}
+
+	c.JSON(http.StatusOK, gin.H{"messages": messages})
+}
+
 func Chat(c *gin.Context) {
 	if !ai.IsGeminiAvailable() {
 		c.JSON(http.StatusServiceUnavailable, gin.H{"error": "AI not configured", "code": "ai_unavailable"})
@@ -79,7 +102,6 @@ func Chat(c *gin.Context) {
 
 	cs := model.StartChat()
 
-	// Load history
 	for _, msg := range req.History {
 		cs.History = append(cs.History, &genai.Content{
 			Role:  msg.Role,
@@ -87,7 +109,6 @@ func Chat(c *gin.Context) {
 		})
 	}
 
-	// Agentic loop — Gemini may call tools multiple times
 	var parts []genai.Part
 	parts = append(parts, genai.Text(req.Message))
 
@@ -104,6 +125,10 @@ func Chat(c *gin.Context) {
 		return
 	}
 
+	// Persist both turns
+	database.DB.Create(&models.ChatMessage{UserID: userID, Role: "user", Content: req.Message})
+	database.DB.Create(&models.ChatMessage{UserID: userID, Role: "model", Content: finalText})
+
 	c.JSON(http.StatusOK, gin.H{"response": finalText})
 }
 
@@ -118,7 +143,6 @@ func runToolLoop(ctx context.Context, cs *genai.ChatSession, resp *genai.Generat
 			return "", fmt.Errorf("nil content in response")
 		}
 
-		// Check for function calls
 		var funcCall *genai.FunctionCall
 		var textParts []string
 
@@ -131,26 +155,19 @@ func runToolLoop(ctx context.Context, cs *genai.ChatSession, resp *genai.Generat
 			}
 		}
 
-		// No function call — return final text
 		if funcCall == nil {
 			if len(textParts) > 0 {
-				result := ""
-				for _, t := range textParts {
-					result += t
-				}
-				return result, nil
+				return strings.Join(textParts, ""), nil
 			}
 			return "", fmt.Errorf("no text in response")
 		}
 
-		// Execute the tool
 		toolResult, err := executeLogSearch(ctx, userID, funcCall.Args)
 		if err != nil {
 			log.Printf("[Chat] log_search failed: %v", err)
 			toolResult = map[string]interface{}{"error": err.Error(), "results": []interface{}{}}
 		}
 
-		// Send result back to Gemini with retry on 429
 		var sendErr error
 		for attempt := 0; attempt < 5; attempt++ {
 			if attempt > 0 {
@@ -200,7 +217,6 @@ func executeLogSearch(ctx context.Context, userID uint, args map[string]interfac
 		return nil, err
 	}
 
-	// Serialize results for Gemini
 	serialized, err := json.Marshal(results)
 	if err != nil {
 		return nil, err

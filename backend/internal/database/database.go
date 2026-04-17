@@ -43,6 +43,7 @@ func InitializeDatabase() {
 		&models.Log{},
 		&models.LogChunk{},
 		&models.Habit{},
+		&models.ChatMessage{},
 	)
 	if err != nil {
 		log.Fatal("[Remmy] Failed to migrate database:", err)

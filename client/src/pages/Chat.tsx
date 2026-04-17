@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { ChevronLeft, Send } from 'lucide-react';
 import { toast } from 'sonner';
-import { sendMessage } from '../lib/chat';
+import { sendMessage, getChatHistory } from '../lib/chat';
 import type { ChatMessage } from '../lib/chat';
 
 function TypingIndicator() {
@@ -61,8 +61,16 @@ export default function Chat() {
   const [history, setHistory] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
+  const [historyLoading, setHistoryLoading] = useState(true);
   const bottomRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
+
+  useEffect(() => {
+    getChatHistory()
+      .then(setHistory)
+      .catch(() => {})
+      .finally(() => setHistoryLoading(false));
+  }, []);
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -128,7 +136,11 @@ export default function Chat() {
       <div className="relative z-10 flex-1 overflow-y-auto px-5 py-4">
         <div className="max-w-3xl mx-auto flex flex-col gap-4">
 
-          {history.length === 0 && !loading && (
+          {historyLoading ? (
+            <div className="flex items-center justify-center py-24">
+              <span className="w-5 h-5 rounded-full border-2 border-violet-200 border-t-violet-500 animate-spin block" />
+            </div>
+          ) : history.length === 0 && !loading && (
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}

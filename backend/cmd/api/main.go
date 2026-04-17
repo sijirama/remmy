@@ -105,7 +105,12 @@ func main() {
 		}
 
 		// ── Chat ──
-		api.POST("/v1/chat", middleware.AuthMiddleware(), endpoints.Chat)
+		chat := api.Group("/v1/chat")
+		chat.Use(middleware.AuthMiddleware())
+		{
+			chat.GET("/history", endpoints.GetChatHistory)
+			chat.POST("", endpoints.Chat)
+		}
 
 		// ── Health ──
 		api.GET("/health", func(c *gin.Context) {
