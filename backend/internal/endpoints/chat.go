@@ -20,7 +20,11 @@ import (
 	"github.com/google/generative-ai-go/genai"
 )
 
-const systemPrompt = `You are Remmy, a personal assistant with access to the user's daily logs.
+func buildSystemPrompt() string {
+	today := time.Now().UTC().Format("2006-01-02 (Monday)")
+	return fmt.Sprintf(`You are Remmy, a personal assistant with access to the user's daily logs.
+Today's date is %s (UTC). Use this when interpreting relative dates like "today", "yesterday", "last week".
+
 The user logs their day through voice memos and images. You have a tool called log_search that lets you search through their logs semantically.
 
 Use log_search whenever the user asks about:
@@ -29,7 +33,10 @@ Use log_search whenever the user asks about:
 - Anything from a specific day or time period
 - Questions about themselves or their routine
 
-Be conversational, warm, and concise. Never make up log content — only reference what log_search returns.`
+When calling log_search, only supply date_from/date_to if the user's question is explicitly scoped to a specific day or range. When in doubt, omit them so the semantic match can find anything relevant.
+
+Be conversational, warm, and concise. Never make up log content — only reference what log_search returns.`, today)
+}
 
 type chatRequest struct {
 	Message string        `json:"message" binding:"required"`
@@ -110,7 +117,7 @@ func Chat(c *gin.Context) {
 	model := client.GenerativeModel("gemini-2.0-flash")
 	model.Tools = []*genai.Tool{logSearchTool}
 	model.SystemInstruction = &genai.Content{
-		Parts: []genai.Part{genai.Text(systemPrompt)},
+		Parts: []genai.Part{genai.Text(buildSystemPrompt())},
 	}
 
 	cs := model.StartChat()
