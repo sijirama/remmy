@@ -205,17 +205,6 @@ export default function Chat() {
       .finally(() => setHistoryLoading(false));
   }, []);
 
-  useEffect(() => {
-    if (observerRef.current) observerRef.current.disconnect();
-    if (!sentinelRef.current || !hasOlder || loadingOlder || historyLoading) return;
-    observerRef.current = new IntersectionObserver(entries => {
-      if (entries[0].isIntersecting) loadOlderMessages();
-    }, { threshold: 0.1 });
-    observerRef.current.observe(sentinelRef.current);
-    return () => observerRef.current?.disconnect();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [hasOlder, loadingOlder, historyLoading, history]);
-
   const loadOlderMessages = async () => {
     if (loadingOlder || !hasOlder || history.length === 0) return;
     const oldestId = history[0].id;
@@ -234,6 +223,17 @@ export default function Chat() {
       setLoadingOlder(false);
     }
   };
+
+  useEffect(() => {
+    if (observerRef.current) observerRef.current.disconnect();
+    if (!sentinelRef.current || !hasOlder || loadingOlder || historyLoading) return;
+    observerRef.current = new IntersectionObserver(entries => {
+      if (entries[0].isIntersecting) loadOlderMessages();
+    }, { threshold: 0.1 });
+    observerRef.current.observe(sentinelRef.current);
+    return () => observerRef.current?.disconnect();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [hasOlder, loadingOlder, historyLoading, history]);
 
   const submit = useCallback(async () => {
     const text = input.trim();

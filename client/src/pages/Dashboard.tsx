@@ -46,10 +46,7 @@ function getWeekCentered(center: Date): Date[] {
 }
 
 const WEEKDAY_SHORT = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-const MONTH_NAMES = [
-  'January', 'February', 'March', 'April', 'May', 'June',
-  'July', 'August', 'September', 'October', 'November', 'December',
-];
+
 
 type RecordingState = 'idle' | 'recording' | 'uploading';
 
@@ -130,14 +127,14 @@ function WeekStrip({ selected, onSelect }: { selected: Date; onSelect: (d: Date)
               </span>
 
               <span
-                className="tabular-nums leading-none flex items-center justify-center"
+                className="tabular-nums leading-none flex items-center justify-center font-bold"
                 style={{
-                  fontFamily: 'ui-serif, Georgia, "Times New Roman", serif',
+                  fontFamily: 'Inter, sans-serif',
                   fontSize: isAccentBox ? 22 : 20,
                   color: isAccentBox
                     ? '#7C6DD8'
                     : sel ? '#fff' : '#3a3a42',
-                  fontWeight: sel || tod ? 600 : 500,
+                  fontWeight: sel || tod ? 800 : 700,
                   letterSpacing: '-0.01em',
                   padding: isAccentBox
                     ? '11px 6px'
@@ -251,6 +248,7 @@ export default function Dashboard() {
   }, []);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setOffset(0);
     setHasMore(false);
     loadLogs(date, 0);

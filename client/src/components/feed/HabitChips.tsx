@@ -12,6 +12,7 @@ const PASTEL_PALETTE = [
   { bg: '#FFE4E6', color: '#BE123C' },
 ];
 
+// eslint-disable-next-line react-refresh/only-export-components
 export function palette(habit: string) {
   let hash = 0;
   for (let i = 0; i < habit.length; i++) hash = habit.charCodeAt(i) + ((hash << 5) - hash);
