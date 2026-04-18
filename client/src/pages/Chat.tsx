@@ -428,7 +428,7 @@ export default function Chat() {
           style={{
             position: 'relative',
             zIndex: 20,
-            paddingBottom: 16,
+            paddingBottom: 2,
             background: 'linear-gradient(to top, rgba(250,250,250,1) 60%, rgba(250,250,250,0))',
           }}
         >
