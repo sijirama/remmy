@@ -425,13 +425,12 @@ export default function Chat() {
           </div>
         </div>
 
-        {/* ── Input bar ── */}
         <div
           className="flex-shrink-0 sm:px-8 pt-2 sm:pt-3"
           style={{
             position: 'relative',
             zIndex: 20,
-            paddingBottom: 2,
+            paddingBottom: 8,
             background: 'linear-gradient(to top, rgba(250,250,250,1) 60%, rgba(250,250,250,0))',
           }}
         >

@@ -24,15 +24,6 @@ function isSameDay(a: Date, b: Date) {
   return toDateStr(a) === toDateStr(b);
 }
 
-function getRelativeDayLabel(d: Date) {
-  const today = new Date();
-  const yesterday = new Date(today);
-  yesterday.setDate(yesterday.getDate() - 1);
-
-  if (isSameDay(d, today)) return 'today';
-  if (isSameDay(d, yesterday)) return 'yesterday';
-  return d.toLocaleDateString('en-US', { weekday: 'long' }).toLowerCase();
-}
 
 /** Returns 7 consecutive days centered on `center` (3 before, center, 3 after). */
 function getWeekCentered(center: Date): Date[] {
