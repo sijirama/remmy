@@ -104,14 +104,14 @@ export default function LogDetail() {
           initial={{ opacity: 0, y: 8 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.22 }}
-          className="px-5 sm:px-8 flex flex-col gap-5"
+          className="px-5 sm:px-8 mx-5 sm:mx-0 flex flex-col gap-5"
           style={{ marginTop: 40, marginBottom: 80, paddingBottom: 40 }}
         >
           {title && (
             <h1
               style={{
                 fontFamily: 'ui-serif, Georgia, "Times New Roman", serif',
-                fontSize: 'clamp(1.35rem, 3.5vw, 1.6rem)',
+                fontSize: 'clamp(1rem, 2.8vw, 1.3rem)',
                 fontWeight: 600,
                 lineHeight: 1.25,
                 letterSpacing: '-0.02em',
@@ -137,8 +137,7 @@ export default function LogDetail() {
               <img
                 src={log.raw_file_url}
                 alt="log"
-                className="w-full object-cover block"
-                style={{ maxHeight: 420 }}
+                className="w-full object-cover block max-h-[280px] sm:max-h-[420px]"
               />
             </div>
           )}
@@ -172,7 +171,7 @@ export default function LogDetail() {
 
           {/* Body — markdown, smaller than before */}
           {content && (
-            <div className="markdown-body">
+            <div className="markdown-body text-[11.5px] sm:text-[13px]">
               <ReactMarkdown remarkPlugins={[remarkGfm]}>
                 {content}
               </ReactMarkdown>

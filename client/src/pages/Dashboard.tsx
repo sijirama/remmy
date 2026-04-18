@@ -110,11 +110,10 @@ function WeekStrip({ selected, onSelect }: { selected: Date; onSelect: (d: Date)
               key={i}
               onClick={() => handleSelect(d)}
               disabled={future}
-              className="flex flex-col items-center transition-all active:scale-[0.97]"
+              className="flex flex-col items-center transition-all active:scale-[0.97] w-[36px] sm:w-[44px]"
               style={{
                 opacity: future ? 0.25 : 1,
                 cursor: future ? 'default' : 'pointer',
-                width: 44,
                 gap: 5,
                 paddingTop: 2,
               }}
@@ -184,13 +183,13 @@ function SkeletonRow({ isLast = false }: { isLast?: boolean }) {
   return (
     <div className="relative flex items-start pb-8 animate-pulse">
       {/* Time */}
-      <div className="w-[44px] flex-shrink-0 pt-[2px] flex flex-col items-end gap-1.5">
+      <div className="w-[36px] sm:w-[44px] flex-shrink-0 pt-[2px] flex flex-col items-end gap-1.5">
         <div className="w-8 h-[10px] rounded-full bg-black/5" />
         <div className="w-5 h-[7px] rounded-full bg-black/5" />
       </div>
 
       {/* Spine */}
-      <div className="relative flex flex-col items-center flex-shrink-0" style={{ width: 14, marginLeft: 10, marginRight: 10 }}>
+      <div className="relative flex flex-col items-center flex-shrink-0" style={{ width: 14, marginLeft: 6, marginRight: 6 }}>
         <div
           className="w-[10px] h-[10px] bg-black/[0.08] rounded-full mt-[4px] relative z-10"
           style={{ boxShadow: '0 0 0 3px white, 0 0 0 4.5px rgba(0,0,0,0.04)' }}
@@ -371,7 +370,7 @@ export default function Dashboard() {
         }}
       />
 
-      <div className="flex flex-col items-center min-h-screen px-5 sm:px-8 pb-16" style={{ paddingTop: 24 }}>
+      <div className="flex flex-col items-center min-h-screen px-5 sm:px-8 pb-16 pt-4 sm:pt-6">
         <div className="w-full max-w-xl flex flex-col gap-6">
 
           {/* ── Top bar ── */}
@@ -461,7 +460,7 @@ export default function Dashboard() {
             className="flex items-center justify-between mb-1"
           >
             <h1
-              className="text-[2.25rem] font-extrabold leading-none tracking-tight"
+              className="text-[1.75rem] sm:text-[2.25rem] font-extrabold leading-none tracking-tight"
               style={{ letterSpacing: '-0.04em', color: '#111' }}
             >
               {getRelativeDayLabel(date)}
@@ -558,7 +557,7 @@ export default function Dashboard() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ duration: 0.3, delay: 0.18 }}
-            className="flex flex-col gap-12 mb-6 mt-4"
+            className="flex flex-col gap-8 sm:gap-12 mb-6 mt-4"
           >
             {loading ? (
               <>
@@ -602,6 +601,51 @@ export default function Dashboard() {
           </motion.div>
 
         </div>
+      </div>
+
+      {/* ── Sticky mobile capture FAB ── */}
+      <div className="fixed bottom-10 right-5 flex flex-col gap-2.5 z-30 sm:hidden">
+        <button
+          onClick={handleMicClick}
+          disabled={recordingState === 'uploading'}
+          className="w-12 h-12 rounded-full flex items-center justify-center transition-all active:scale-90 disabled:opacity-40"
+          style={{
+            background: recordingState === 'recording'
+              ? 'linear-gradient(135deg, #E84393 0%, #FD79A8 100%)'
+              : 'linear-gradient(135deg, #7C6DD8 0%, #A29BFE 100%)',
+            boxShadow: recordingState === 'recording'
+              ? '0 4px 16px rgba(232, 67, 147, 0.4)'
+              : '0 4px 16px rgba(124, 109, 216, 0.35)',
+          }}
+          aria-label={recordingState === 'recording' ? 'stop recording' : 'start recording'}
+        >
+          {recordingState === 'uploading' ? (
+            <span className="w-4 h-4 rounded-full border-2 border-transparent border-t-white animate-spin block" />
+          ) : (
+            <Mic
+              size={18}
+              color="#fff"
+              className={recordingState === 'recording' ? 'animate-pulse' : ''}
+            />
+          )}
+        </button>
+
+        <button
+          onClick={() => imageInputRef.current?.click()}
+          disabled={imageUploading}
+          className="w-12 h-12 rounded-full flex items-center justify-center transition-all active:scale-90 disabled:opacity-40"
+          style={{
+            background: 'linear-gradient(135deg, #E84393 0%, #FD79A8 100%)',
+            boxShadow: '0 4px 16px rgba(232, 67, 147, 0.35)',
+          }}
+          aria-label="upload photo"
+        >
+          {imageUploading ? (
+            <span className="w-4 h-4 rounded-full border-2 border-transparent border-t-white animate-spin block" />
+          ) : (
+            <Camera size={18} color="#fff" />
+          )}
+        </button>
       </div>
     </div>
   );

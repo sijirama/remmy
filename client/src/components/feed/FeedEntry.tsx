@@ -31,9 +31,9 @@ export default function FeedEntry({ log, isLast = false }: Props) {
   const inner = (
     <div className="relative flex items-start group">
       {/* Time */}
-      <div className="w-[44px] flex-shrink-0 pt-[2px] flex flex-col items-end leading-none">
+      <div className="w-[36px] sm:w-[44px] flex-shrink-0 pt-[2px] flex flex-col items-end leading-none">
         <span
-          className="text-[13px] font-bold tabular-nums tracking-tight"
+          className="text-[11px] sm:text-[13px] font-bold tabular-nums tracking-tight"
           style={{ color: '#111', letterSpacing: '-0.02em' }}
         >
           {hhmm}
@@ -49,7 +49,7 @@ export default function FeedEntry({ log, isLast = false }: Props) {
       {/* Spine */}
       <div
         className="relative flex flex-col items-center flex-shrink-0"
-        style={{ width: 14, marginLeft: 10, marginRight: 10 }}
+        style={{ width: 14, marginLeft: 6, marginRight: 6 }}
       >
         <div
           className={`w-[10px] h-[10px] ${dotRadius} mt-[4px] relative z-10`}
@@ -80,7 +80,7 @@ export default function FeedEntry({ log, isLast = false }: Props) {
           <>
             {title && (
               <span
-                className="font-semibold text-[15px] leading-snug tracking-tight"
+                className="font-semibold text-[13px] sm:text-[15px] leading-snug tracking-tight"
                 style={{ color: '#111' }}
               >
                 {title}
@@ -95,7 +95,7 @@ export default function FeedEntry({ log, isLast = false }: Props) {
                   <img
                     src={log.raw_file_url}
                     alt=""
-                    className="rounded-[4px] object-cover border shadow-sm"
+                    className="rounded-[4px] object-cover border shadow-sm max-h-[200px] sm:max-h-[300px]"
                     style={{
                       width: '100%',
                       borderColor: 'rgba(0,0,0,0.06)',
@@ -107,7 +107,7 @@ export default function FeedEntry({ log, isLast = false }: Props) {
 
             {preview && (
               <p
-                className="text-[13px] leading-snug"
+                className="text-[11.5px] sm:text-[13px] leading-snug"
                 style={{
                   color: '#888',
                   overflow: 'hidden',
@@ -122,7 +122,7 @@ export default function FeedEntry({ log, isLast = false }: Props) {
 
             {log.habit_matches?.length > 0 && (
               <div className="mt-0.5">
-                <HabitChips habits={log.habit_matches} max={5} />
+                <HabitChips habits={log.habit_matches} max={3} />
               </div>
             )}
           </>

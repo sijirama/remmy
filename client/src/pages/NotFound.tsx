@@ -12,8 +12,8 @@ export default function NotFound() {
     <div className="relative flex flex-col items-center justify-center min-h-screen px-6 overflow-hidden" style={{ background: 'var(--bg)' }}>
 
       <div className="absolute inset-0 pointer-events-none overflow-hidden">
-        <div className="absolute rounded-full" style={{ top: '-100px', left: '50%', transform: 'translateX(-50%)', width: 600, height: 600, background: 'rgba(108,92,231,0.06)', filter: 'blur(120px)' }} />
-        <div className="absolute rounded-full" style={{ bottom: '-60px', right: '10%', width: 300, height: 300, background: 'rgba(232,67,147,0.05)', filter: 'blur(90px)' }} />
+        <div className="absolute rounded-full w-[400px] h-[400px] sm:w-[600px] sm:h-[600px]" style={{ top: '-100px', left: '50%', transform: 'translateX(-50%)', background: 'rgba(108,92,231,0.06)', filter: 'blur(120px)' }} />
+        <div className="absolute rounded-full w-[200px] h-[200px] sm:w-[300px] sm:h-[300px]" style={{ bottom: '-60px', right: '10%', background: 'rgba(232,67,147,0.05)', filter: 'blur(90px)' }} />
       </div>
 
       <motion.div
@@ -22,7 +22,7 @@ export default function NotFound() {
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.4 }}
       >
-        <p style={{ fontSize: 80, fontWeight: 800, letterSpacing: '-0.04em', color: '#F0EDFF', lineHeight: 1 }}>
+        <p className="text-6xl sm:text-[80px]" style={{ fontWeight: 800, letterSpacing: '-0.04em', color: '#F0EDFF', lineHeight: 1 }}>
           404
         </p>
         <p style={{ marginTop: 12, fontSize: 15, color: '#636E72' }}>

@@ -88,7 +88,7 @@ function SearchTable({ contexts }: { contexts: SearchContext[] }) {
                         <td className="px-3 py-2.5 align-top" style={{ color: '#7C6DD8', whiteSpace: 'nowrap', fontWeight: 500 }}>
                           {ri === 0 ? `"${ctx.query}"` : ''}
                         </td>
-                        <td className="px-3 py-2.5" style={{ color: '#52525b', maxWidth: 220 }}>
+                        <td className="px-3 py-2.5 max-w-[140px] sm:max-w-[220px]" style={{ color: '#52525b' }}>
                           <span className="line-clamp-2">{r.chunk_text}</span>
                         </td>
                         <td className="px-3 py-2.5 text-right font-mono align-top tabular-nums" style={{ color: '#16a34a', whiteSpace: 'nowrap', fontSize: 10.5 }}>
@@ -120,17 +120,17 @@ function Message({ msg }: { msg: DisplayMessage }) {
       initial={{ opacity: 0, y: 6 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.18 }}
-      className={`flex items-end gap-3 ${isUser ? 'flex-row-reverse' : ''}`}
+      className={`flex items-end gap-2 sm:gap-3 ${isUser ? 'flex-row-reverse' : ''}`}
     >
       {!isUser && (
-        <div className="remmy-avatar w-8 h-8 rounded-full flex-shrink-0" />
+        <div className="remmy-avatar w-6 h-6 sm:w-8 sm:h-8 rounded-full flex-shrink-0" />
       )}
       <div
         className={`flex flex-col gap-1.5 ${isUser ? 'items-end' : 'items-start'}`}
         style={{ maxWidth: '85%' }}
       >
         <div
-          className="text-[13px] leading-[1.6] whitespace-pre-wrap"
+          className="text-[11.5px] sm:text-[13px] leading-[1.6] whitespace-pre-wrap"
           style={isUser ? {
             background: 'linear-gradient(135deg, #3B4252 0%, #2E3440 100%)',
             color: '#ECEFF4',
@@ -377,12 +377,12 @@ export default function Chat() {
                 style={{ paddingTop: 72 }}
               >
                 <div
-                  className="remmy-avatar w-14 h-14"
+                  className="remmy-avatar w-11 h-11 sm:w-14 sm:h-14"
                   style={{ borderRadius: 18 }}
                 />
                 <div className="flex flex-col items-center gap-1.5">
                   <p
-                    className="text-[18px] font-semibold"
+                    className="text-[15px] sm:text-[18px] font-semibold"
                     style={{
                       color: '#111',
                       letterSpacing: '-0.02em',
@@ -391,7 +391,7 @@ export default function Chat() {
                   >
                     ask remmy anything
                   </p>
-                  <p className="text-[13px] text-center" style={{ color: '#9a9aa4', maxWidth: 240, letterSpacing: '-0.01em' }}>
+                  <p className="text-[11.5px] sm:text-[13px] text-center" style={{ color: '#9a9aa4', maxWidth: 240, letterSpacing: '-0.01em' }}>
                     habits, patterns, what you logged last week…
                   </p>
                 </div>
@@ -440,7 +440,7 @@ export default function Chat() {
               onKeyDown={onKeyDown}
               placeholder="ask anything…"
               rows={1}
-              className="w-full resize-none outline-none bg-transparent text-[13.5px] leading-[1.55] placeholder:text-[#b8b8c0] hide-scrollbar block"
+              className="w-full resize-none outline-none bg-transparent text-[12px] sm:text-[13.5px] leading-[1.55] placeholder:text-[#b8b8c0] hide-scrollbar block"
               style={{
                 color: '#111',
                 maxHeight: 160,
@@ -467,8 +467,7 @@ export default function Chat() {
               <button
                 onClick={submit}
                 disabled={!canSubmit}
-                className="chat-send flex-shrink-0 rounded-full flex items-center justify-center"
-                style={{ width: 32, height: 32 }}
+                className="chat-send flex-shrink-0 rounded-full flex items-center justify-center w-7 h-7 sm:w-8 sm:h-8"
                 aria-label="send message"
               >
                 {loading ? (

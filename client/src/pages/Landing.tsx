@@ -23,7 +23,7 @@ export default function Landing() {
       </div>
 
       {/* Floating cards */}
-      <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+      <div className="absolute inset-0 hidden md:flex items-center justify-center pointer-events-none">
         {floatingMoments.map(({ icon: Icon, label, color, bg, x, y, rotate }, i) => (
           <motion.div
             key={i}
@@ -61,8 +61,8 @@ export default function Landing() {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5, delay: 0.06 }}
-          className="leading-none"
-          style={{ fontSize: 72, fontWeight: 800, color: '#111', letterSpacing: '-0.04em' }}
+          className="leading-none text-5xl md:text-[72px]"
+          style={{ fontWeight: 800, color: '#111', letterSpacing: '-0.04em' }}
         >
           remmy
         </motion.h1>
@@ -71,7 +71,8 @@ export default function Landing() {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5, delay: 0.14 }}
-          style={{ marginTop: 20, color: '#636E72', fontSize: 17, lineHeight: 1.7, maxWidth: 400 }}
+          className="max-w-[280px] sm:max-w-[400px]"
+          style={{ marginTop: 20, color: '#636E72', fontSize: 17, lineHeight: 1.7 }}
         >
           moments pass fast. catch them in voice, photos, and memories before they're gone.
         </motion.p>
@@ -88,7 +89,7 @@ export default function Landing() {
             gap: 10,
             backgroundColor: '#111',
             color: '#fff',
-            padding: '13px 32px',
+            padding: '12px 26px',
             fontSize: 14,
             fontWeight: 600,
             borderRadius: 14,
