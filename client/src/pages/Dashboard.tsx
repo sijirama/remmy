@@ -370,12 +370,12 @@ export default function Dashboard() {
         }}
       />
 
-      <div className="flex flex-col items-center min-h-screen px-6 sm:px-8 pb-16 pt-4 sm:pt-6">
-        <div className="w-full max-w-xl flex flex-col gap-6">
+      <div className="flex flex-col items-center min-h-screen px-0 sm:px-8 pb-16 pt-6 sm:pt-6">
+        <div className="w-[88%] sm:w-full max-w-xl mx-auto flex flex-col gap-6">
 
           {/* ── Top bar ── */}
           <motion.div
-            className="flex items-center justify-between px-2 sm:px-1"
+            className="flex items-center justify-between mt-4 sm:mt-0 pt-2 sm:pt-0"
             initial={{ opacity: 0, y: -8 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.3 }}
@@ -457,7 +457,7 @@ export default function Dashboard() {
             initial={{ opacity: 0, y: 8 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.3, delay: 0.06 }}
-            className="flex items-center justify-between mb-1 px-2 sm:px-1"
+            className="flex items-center justify-between mb-1"
           >
             <h1
               className="text-[1.75rem] sm:text-[2.25rem] font-extrabold leading-none tracking-tight"
@@ -477,14 +477,14 @@ export default function Dashboard() {
             initial={{ opacity: 0, y: 8 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.3, delay: 0.1 }}
-            className="py-1 px-2 sm:px-1"
+            className="py-1"
           >
             <WeekStrip selected={date} onSelect={setDate} />
           </motion.div>
 
           {/* ── Habits + Capture ── */}
           <motion.div
-            className="flex items-center justify-between gap-3 px-2 sm:px-1"
+            className="flex items-center justify-between gap-3"
             initial={{ opacity: 0, y: 8 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.3, delay: 0.14 }}

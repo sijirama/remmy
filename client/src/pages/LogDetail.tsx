@@ -65,11 +65,11 @@ export default function LogDetail() {
 
   return (
     <div className="min-h-screen flex flex-col items-center overflow-x-hidden" style={{ background: 'var(--bg)' }}>
-      <div className="w-full max-w-xl flex flex-col" style={{ minHeight: '100dvh' }}>
+      <div className="w-[88%] sm:w-full max-w-xl mx-auto flex flex-col" style={{ minHeight: '100dvh' }}>
 
         {/* ── Navbar — matches Chat ── */}
         <div
-          className="flex-shrink-0 flex items-center justify-between px-8"
+          className="flex-shrink-0 flex items-center justify-between sm:px-8 py-1"
           style={{
             height: 56,
             background: 'rgba(250,250,250,0.8)',
@@ -104,7 +104,7 @@ export default function LogDetail() {
           initial={{ opacity: 0, y: 8 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.22 }}
-          className="px-8 sm:px-8 mx-4 sm:mx-0 flex flex-col gap-5"
+          className="px-0 sm:px-8 flex flex-col gap-5"
           style={{ marginTop: 40, marginBottom: 80, paddingBottom: 40 }}
         >
           {title && (

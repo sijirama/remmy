@@ -306,11 +306,11 @@ export default function Chat() {
         }}
       />
 
-      <div className="relative w-full max-w-xl flex flex-col" style={{ height: '100dvh' }}>
+      <div className="relative w-[88%] sm:w-full max-w-xl mx-auto flex flex-col" style={{ height: '100dvh' }}>
 
         {/* ── Navbar ── */}
         <div
-          className="flex-shrink-0 flex items-center justify-between px-6 sm:px-8"
+          className="flex-shrink-0 flex items-center justify-between sm:px-8"
           style={{
             height: 56,
             background: 'rgba(250,250,250,0.92)',
@@ -347,7 +347,7 @@ export default function Chat() {
           className="flex-1 overflow-y-auto hide-scrollbar"
           style={{ overscrollBehavior: 'contain' }}
         >
-          <div className="flex flex-col gap-4 px-6 sm:px-8 pt-5 sm:pt-8 pb-4 sm:pb-12">
+          <div className="flex flex-col gap-4 sm:px-8 pt-5 sm:pt-8 pb-4 sm:pb-12">
 
             {hasOlder && (
               <div ref={sentinelRef} className="flex justify-center pb-2">
@@ -424,7 +424,7 @@ export default function Chat() {
 
         {/* ── Input bar ── */}
         <div
-          className="flex-shrink-0 px-6 sm:px-8 pt-2 sm:pt-3"
+          className="flex-shrink-0 sm:px-8 pt-2 sm:pt-3"
           style={{
             position: 'relative',
             zIndex: 20,
