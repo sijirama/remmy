@@ -61,7 +61,7 @@ export default function AudioPlayer({ src, size = 'sm' }: Props) {
 
   return (
     <div
-      className="flex items-center rounded-[14px] transition-all"
+      className="flex items-center rounded-[14px] transition-all max-w-[260px] sm:max-w-full"
       style={{
         background: 'linear-gradient(135deg, #F5F1FF 0%, #EDE7FF 100%)',
         border: '1px solid rgba(124, 109, 216, 0.14)',
