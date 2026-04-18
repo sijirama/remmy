@@ -279,7 +279,8 @@ export default function Dashboard() {
         stream.getTracks().forEach(t => t.stop());
         setRecordingState('uploading');
         try {
-          const blob = new Blob(chunksRef.current, { type: 'audio/webm' });
+          const mimeType = chunksRef.current[0]?.type || 'audio/mp4';
+          const blob = new Blob(chunksRef.current, { type: mimeType });
           const res = await uploadAudioLog(blob);
           const optimistic: Log = {
             id: res.id,
@@ -365,9 +366,12 @@ export default function Dashboard() {
           {/* Bulletproof spacer so the navbar is never touching the top edge */}
           <div className="block md:hidden h-0 w-full flex-shrink-0" />
 
+          {/* Dedicated margin block for PC screens */}
+          <div className="hidden sm:block h-0 w-full flex-shrink-0" />
+
           {/* ── Top bar ── */}
           <motion.div
-            className="flex items-center justify-end sm:justify-between pt-2 sm:pt-0"
+            className="flex items-center justify-end sm:justify-between pt-2"
             initial={{ opacity: 0, y: -8 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.3 }}

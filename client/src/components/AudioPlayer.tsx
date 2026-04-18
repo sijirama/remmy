@@ -88,7 +88,6 @@ export default function AudioPlayer({ src, size = 'sm' }: Props) {
         gap: lg ? 14 : 12,
         boxShadow: '0 1px 2px rgba(124, 109, 216, 0.06)',
       }}
-      onClick={e => e.preventDefault()}
     >
       <audio 
         ref={audioRef} 

@@ -20,17 +20,21 @@ export function palette(habit: string) {
 }
 
 export default function HabitChips({ habits, max = 5 }: Props) {
-  const visible = habits.slice(0, max);
-  const overflow = habits.length - visible.length;
-
   return (
-    <div className="flex flex-wrap gap-1.5">
-      {visible.map(h => {
+    <div 
+      className="flex flex-nowrap items-center gap-1.5 overflow-x-auto hide-scrollbar"
+      style={{
+        maskImage: 'linear-gradient(to right, black 85%, transparent 100%)',
+        WebkitMaskImage: 'linear-gradient(to right, black 90%, transparent 100%)',
+        paddingRight: 15,
+      }}
+    >
+      {habits.map(h => {
         const { bg, color } = palette(h);
         return (
           <span
             key={h}
-            className="text-[11.5px] font-semibold"
+            className="flex-shrink-0 text-[11.5px] font-semibold"
             style={{
               background: bg,
               color,
@@ -43,19 +47,6 @@ export default function HabitChips({ habits, max = 5 }: Props) {
           </span>
         );
       })}
-      {overflow > 0 && (
-        <span
-          className="text-[11.5px] font-semibold"
-          style={{
-            background: 'rgba(0,0,0,0.04)',
-            color: '#aaa',
-            padding: '4px 10px',
-            borderRadius: 6,
-          }}
-        >
-          +{overflow}
-        </span>
-      )}
     </div>
   );
 }
