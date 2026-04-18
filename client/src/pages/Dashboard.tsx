@@ -1,12 +1,14 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ChevronLeft, ChevronRight, Mic, Camera, LogOut, MessageCircle } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Mic, Camera, LogOut, MessageSquare } from 'lucide-react';
+import * as DropdownMenu from '@radix-ui/react-dropdown-menu';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import { useAuth } from '../contexts/AuthContext';
 import { fetchLogs, fetchLog, uploadAudioLog, uploadImageLog } from '../lib/logs';
 import type { Log } from '../lib/types';
 import FeedEntry from '../components/feed/FeedEntry';
+import { palette } from '../components/feed/HabitChips';
 
 /* ── Helpers ── */
 
@@ -32,20 +34,18 @@ function getRelativeDayLabel(d: Date) {
   return d.toLocaleDateString('en-US', { weekday: 'long' }).toLowerCase();
 }
 
-function getWeekDays(reference: Date): Date[] {
-  const day = reference.getDay();
-  const monday = new Date(reference);
-  monday.setDate(reference.getDate() - ((day + 6) % 7));
+/** Returns 7 consecutive days centered on `center` (3 before, center, 3 after). */
+function getWeekCentered(center: Date): Date[] {
   const week: Date[] = [];
-  for (let i = 0; i < 7; i++) {
-    const d = new Date(monday);
-    d.setDate(monday.getDate() + i);
+  for (let i = -3; i <= 3; i++) {
+    const d = new Date(center);
+    d.setDate(center.getDate() + i);
     week.push(d);
   }
   return week;
 }
 
-const DAY_LABELS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+const WEEKDAY_SHORT = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 const MONTH_NAMES = [
   'January', 'February', 'March', 'April', 'May', 'June',
   'July', 'August', 'September', 'October', 'November', 'December',
@@ -56,21 +56,22 @@ type RecordingState = 'idle' | 'recording' | 'uploading';
 /* ── Week Strip ── */
 
 function WeekStrip({ selected, onSelect }: { selected: Date; onSelect: (d: Date) => void }) {
-  const [weekRef, setWeekRef] = useState(selected);
-  const week = getWeekDays(weekRef);
   const today = new Date();
+  const [center, setCenter] = useState<Date>(today);
+  const week = getWeekCentered(center);
 
   const prevWeek = () => {
-    const d = new Date(weekRef);
+    const d = new Date(center);
     d.setDate(d.getDate() - 7);
-    setWeekRef(d);
+    setCenter(d);
   };
 
   const nextWeek = () => {
-    const d = new Date(weekRef);
+    const d = new Date(center);
     d.setDate(d.getDate() + 7);
-    if (d > today) return;
-    setWeekRef(d);
+    // block scrolling beyond the window that still contains today
+    if (d.getTime() - today.getTime() > 3 * 86400000) return;
+    setCenter(d);
   };
 
   const handleSelect = (d: Date) => {
@@ -78,50 +79,84 @@ function WeekStrip({ selected, onSelect }: { selected: Date; onSelect: (d: Date)
     onSelect(d);
   };
 
+  const nextBlocked = (() => {
+    const d = new Date(center);
+    d.setDate(d.getDate() + 7);
+    return d.getTime() - today.getTime() > 3 * 86400000;
+  })();
+
   return (
-    <div className="flex items-center">
+    <div className="flex items-center gap-1">
       <button
         onClick={prevWeek}
-        className="w-8 h-8 flex items-center justify-center rounded-full transition-colors hover:bg-black/[0.03] active:bg-black/[0.06] flex-shrink-0"
+        className="w-7 h-7 flex items-center justify-center flex-shrink-0 rounded-full opacity-50 hover:opacity-100 hover:bg-black/[0.04] transition-all"
+        aria-label="previous week"
       >
-        <ChevronLeft size={16} strokeWidth={2.5} style={{ color: '#ccc' }} />
+        <ChevronLeft size={14} strokeWidth={2} style={{ color: '#111' }} />
       </button>
 
-      <div className="flex-1 flex justify-between px-1">
+      <div className="flex-1 flex justify-between items-stretch">
         {week.map((d, i) => {
           const sel = isSameDay(d, selected);
           const tod = isSameDay(d, today);
           const future = d > today && !tod;
+          const label = WEEKDAY_SHORT[d.getDay()];
+
+          // today (whether selected or not) always gets the accent box
+          const isAccentBox = tod;
 
           return (
             <button
               key={i}
               onClick={() => handleSelect(d)}
               disabled={future}
-              className="flex flex-col items-center gap-2 transition-all active:scale-95"
+              className="flex flex-col items-center transition-all active:scale-[0.97]"
               style={{
-                opacity: future ? 0.3 : 1,
+                opacity: future ? 0.25 : 1,
                 cursor: future ? 'default' : 'pointer',
                 width: 44,
+                gap: 5,
+                paddingTop: 2,
               }}
             >
               <span
-                className="text-[13.5px] tracking-tight"
+                className="text-[9.5px] uppercase tabular-nums leading-none"
                 style={{
-                  color: sel ? '#111' : '#888',
-                  fontWeight: sel ? 600 : 500,
+                  color: tod ? '#7C6DD8' : sel ? '#111' : '#b8b8c0',
+                  fontWeight: 700,
+                  letterSpacing: '0.14em',
                 }}
               >
-                {DAY_LABELS[i]}
+                {label}
               </span>
+
               <span
-                className="text-[15.5px] flex items-center justify-center rounded-[14px]"
+                className="tabular-nums leading-none flex items-center justify-center"
                 style={{
-                  color: sel ? '#6C5CE7' : tod ? '#6C5CE7' : '#888',
-                  fontWeight: sel ? 700 : 600,
-                  background: sel ? '#F0EDFF' : 'transparent',
-                  width: 38,
-                  height: 38,
+                  fontFamily: 'ui-serif, Georgia, "Times New Roman", serif',
+                  fontSize: isAccentBox ? 22 : 20,
+                  color: isAccentBox
+                    ? '#7C6DD8'
+                    : sel ? '#fff' : '#3a3a42',
+                  fontWeight: sel || tod ? 600 : 500,
+                  letterSpacing: '-0.01em',
+                  padding: isAccentBox
+                    ? '11px 6px'
+                    : sel
+                      ? '8px 9px'
+                      : '8px 4px',
+                  border: isAccentBox
+                    ? `1.5px solid ${sel ? '#7C6DD8' : 'rgba(124, 109, 216, 0.45)'}`
+                    : '1.5px solid transparent',
+                  background: isAccentBox
+                    ? 'transparent'
+                    : sel ? '#111' : 'transparent',
+                  borderRadius: 9,
+                  boxShadow: sel && !isAccentBox
+                    ? '0 2px 6px rgba(0, 0, 0, 0.18)'
+                    : 'none',
+                  transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
+                  minWidth: 30,
                 }}
               >
                 {d.getDate()}
@@ -133,9 +168,11 @@ function WeekStrip({ selected, onSelect }: { selected: Date; onSelect: (d: Date)
 
       <button
         onClick={nextWeek}
-        className="w-8 h-8 flex items-center justify-center rounded-full transition-colors hover:bg-black/[0.03] active:bg-black/[0.06] flex-shrink-0"
+        disabled={nextBlocked}
+        className="w-7 h-7 flex items-center justify-center flex-shrink-0 rounded-full opacity-50 hover:opacity-100 hover:bg-black/[0.04] transition-all disabled:opacity-15 disabled:hover:bg-transparent disabled:hover:opacity-15"
+        aria-label="next week"
       >
-        <ChevronRight size={16} strokeWidth={2.5} style={{ color: '#ccc' }} />
+        <ChevronRight size={14} strokeWidth={2} style={{ color: '#111' }} />
       </button>
     </div>
   );
@@ -147,17 +184,21 @@ function SkeletonRow({ isLast = false }: { isLast?: boolean }) {
   return (
     <div className="relative flex items-start pb-8 animate-pulse">
       {/* Time */}
-      <div className="w-[42px] flex-shrink-0 pt-[3px] flex justify-end">
-        <div className="w-8 h-[12px] rounded-full bg-black/5" />
+      <div className="w-[44px] flex-shrink-0 pt-[2px] flex flex-col items-end gap-1.5">
+        <div className="w-8 h-[10px] rounded-full bg-black/5" />
+        <div className="w-5 h-[7px] rounded-full bg-black/5" />
       </div>
 
       {/* Spine */}
-      <div className="relative flex flex-col items-center" style={{ width: 12, marginLeft: 8, marginRight: 8 }}>
-        <div className="w-[9px] h-[9px] bg-black/[0.1] rounded-full mt-[5px] relative z-10" />
+      <div className="relative flex flex-col items-center flex-shrink-0" style={{ width: 14, marginLeft: 10, marginRight: 10 }}>
+        <div
+          className="w-[10px] h-[10px] bg-black/[0.08] rounded-full mt-[4px] relative z-10"
+          style={{ boxShadow: '0 0 0 3px white, 0 0 0 4.5px rgba(0,0,0,0.04)' }}
+        />
         {!isLast && (
           <div
-            className="absolute w-px"
-            style={{ top: 22, bottom: -32, background: 'rgba(0,0,0,0.03)' }}
+            className="timeline-spine absolute w-[1.5px]"
+            style={{ top: 22, bottom: -80, color: 'rgba(0,0,0,0.08)' }}
           />
         )}
       </div>
@@ -330,7 +371,7 @@ export default function Dashboard() {
         }}
       />
 
-      <div className="flex flex-col items-center min-h-screen px-5 sm:px-8 pb-16" style={{ paddingTop: 52 }}>
+      <div className="flex flex-col items-center min-h-screen px-5 sm:px-8 pb-16" style={{ paddingTop: 24 }}>
         <div className="w-full max-w-xl flex flex-col gap-6">
 
           {/* ── Top bar ── */}
@@ -346,27 +387,69 @@ export default function Dashboard() {
             >
               remmy
             </span>
-            <div className="flex items-center gap-1.5">
-              {user?.profilePicture && (
-                <img
-                  src={user.profilePicture}
-                  alt={user.firstName}
-                  className="w-7 h-7 rounded-full object-cover"
-                  style={{ boxShadow: '0 0 0 1.5px rgba(0,0,0,0.08)' }}
-                />
-              )}
+
+            <div className="flex items-center gap-1">
+              {/* Chat — plain icon button */}
               <button
                 onClick={() => navigate('/chat')}
                 className="w-8 h-8 rounded-full flex items-center justify-center hover:bg-black/[0.05] transition-colors"
+                aria-label="chat"
               >
-                <MessageCircle size={15} style={{ color: '#636E72' }} />
+                <MessageSquare size={15} strokeWidth={2} style={{ color: '#636E72' }} />
               </button>
-              <button
-                onClick={logout}
-                className="w-8 h-8 rounded-full flex items-center justify-center hover:bg-black/[0.05] transition-colors"
-              >
-                <LogOut size={15} style={{ color: '#c8d0d8' }} />
-              </button>
+
+              {/* Avatar — Radix DropdownMenu (shadcn-style) */}
+              <DropdownMenu.Root>
+                <DropdownMenu.Trigger asChild>
+                  <button
+                    className="w-8 h-8 rounded-full overflow-hidden transition-all ml-1 outline-none data-[state=open]:ring-2 data-[state=open]:ring-[#7C6DD8] data-[state=open]:ring-offset-2"
+                    style={{ boxShadow: '0 0 0 1.5px rgba(0,0,0,0.08)' }}
+                    aria-label="account menu"
+                  >
+                    {user?.profilePicture ? (
+                      <img
+                        src={user.profilePicture}
+                        alt={user.firstName}
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      <div
+                        className="w-full h-full flex items-center justify-center text-[12px] font-semibold"
+                        style={{ background: '#f4f4f5', color: '#52525b' }}
+                      >
+                        {user?.firstName?.[0]?.toUpperCase() ?? '?'}
+                      </div>
+                    )}
+                  </button>
+                </DropdownMenu.Trigger>
+
+                <DropdownMenu.Portal>
+                  <DropdownMenu.Content
+                    className="shadcn-menu"
+                    align="end"
+                    sideOffset={8}
+                    style={{ width: 224 }}
+                  >
+                    <DropdownMenu.Label className="shadcn-label">
+                      <div className="flex flex-col leading-tight">
+                        <span className="text-[13px] font-medium truncate" style={{ color: '#09090b' }}>
+                          {user?.firstName} {user?.lastName}
+                        </span>
+                        <span className="text-[12px] font-normal truncate mt-1" style={{ color: '#71717a' }}>
+                          {user?.email}
+                        </span>
+                      </div>
+                    </DropdownMenu.Label>
+
+                    <DropdownMenu.Separator className="shadcn-separator" />
+
+                    <DropdownMenu.Item className="shadcn-item" onSelect={logout}>
+                      <LogOut size={14} strokeWidth={2} style={{ color: '#52525b' }} />
+                      <span>Sign out</span>
+                    </DropdownMenu.Item>
+                  </DropdownMenu.Content>
+                </DropdownMenu.Portal>
+              </DropdownMenu.Root>
             </div>
           </motion.div>
 
@@ -407,31 +490,30 @@ export default function Dashboard() {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.3, delay: 0.14 }}
           >
-            {/* Habit chips */}
-            <div className="flex flex-wrap gap-1 flex-1 min-w-0">
-              <AnimatePresence>
-                {allHabits.slice(0, 4).map(h => (
-                  <motion.span
-                    key={h}
-                    initial={{ opacity: 0, scale: 0.85 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    exit={{ opacity: 0, scale: 0.85 }}
-                    transition={{ duration: 0.15 }}
-                    className="text-[11px] font-semibold px-2.5 py-1 rounded-full"
-                    style={{ background: '#F0EDFF', color: '#7C6DD8' }}
-                  >
-                    {h}
-                  </motion.span>
-                ))}
-                {allHabits.length > 4 && (
-                  <span
-                    className="text-[11px] font-semibold px-2.5 py-1 rounded-full"
-                    style={{ background: 'rgba(0,0,0,0.04)', color: '#aaa' }}
-                  >
-                    +{allHabits.length - 4}
-                  </span>
-                )}
-              </AnimatePresence>
+            {/* Habit chips — marquee */}
+            <div className="habit-marquee-mask flex-1 min-w-0 overflow-hidden">
+              {allHabits.length > 0 && (
+                <div className="habit-marquee-track">
+                  {[...allHabits, ...allHabits].map((h, i) => {
+                    const { bg, color } = palette(h);
+                    return (
+                      <span
+                        key={`${h}-${i}`}
+                        className="text-[11.5px] font-semibold whitespace-nowrap flex-shrink-0"
+                        style={{
+                          background: bg,
+                          color,
+                          padding: '4px 10px',
+                          borderRadius: 6,
+                          letterSpacing: '-0.01em',
+                        }}
+                      >
+                        {h}
+                      </span>
+                    );
+                  })}
+                </div>
+              )}
             </div>
 
             {/* Capture buttons */}

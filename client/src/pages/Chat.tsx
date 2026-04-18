@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect, useLayoutEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
-import { ChevronLeft, ArrowUp } from 'lucide-react';
+import { ChevronLeft, ArrowUp, ChevronDown } from 'lucide-react';
 import { toast } from 'sonner';
 import { sendMessage, getChatHistory } from '../lib/chat';
 import type { ChatMessage, SearchContext } from '../lib/chat';
@@ -11,22 +11,22 @@ import type { ChatMessage, SearchContext } from '../lib/chat';
 function TypingIndicator() {
   return (
     <div className="flex items-end gap-3">
+      <div className="remmy-avatar w-8 h-8 rounded-full flex-shrink-0" />
       <div
-        className="w-8 h-8 rounded-full flex-shrink-0 flex items-center justify-center text-[11px] font-bold"
-        style={{ background: '#F0EDFF', color: '#6C5CE7' }}
+        className="px-4 py-3.5"
+        style={{
+          background: '#fff',
+          border: '1px solid rgba(0,0,0,0.05)',
+          borderRadius: '18px 18px 18px 4px',
+          boxShadow: '0 1px 2px rgba(0,0,0,0.02)',
+        }}
       >
-        r
-      </div>
-      <div
-        className="px-4 py-3.5 rounded-[18px] rounded-bl-[5px]"
-        style={{ background: '#fff', border: '1px solid rgba(0,0,0,0.07)' }}
-      >
-        <div className="flex gap-[5px] items-center" style={{ height: 16 }}>
+        <div className="flex gap-[5px] items-center" style={{ height: 14 }}>
           {[0, 1, 2].map(i => (
             <span
               key={i}
-              className="w-[7px] h-[7px] rounded-full animate-bounce"
-              style={{ background: '#C4BEFE', animationDelay: `${i * 0.15}s`, display: 'block' }}
+              className="w-[6px] h-[6px] rounded-full animate-bounce"
+              style={{ background: '#9a9aa4', animationDelay: `${i * 0.15}s`, display: 'block' }}
             />
           ))}
         </div>
@@ -46,47 +46,63 @@ function SearchTable({ contexts }: { contexts: SearchContext[] }) {
     <div className="mt-2 ml-11">
       <button
         onClick={() => setOpen(o => !o)}
-        className="text-[11px] font-semibold flex items-center gap-1.5 transition-opacity hover:opacity-60"
-        style={{ color: '#A29BFE' }}
+        className="search-toggle"
       >
-        <span style={{ fontSize: 9 }}>{open ? '▾' : '▸'}</span>
+        <ChevronDown
+          size={11}
+          strokeWidth={2.5}
+          style={{
+            transform: open ? 'rotate(0deg)' : 'rotate(-90deg)',
+            transition: 'transform 0.15s ease',
+          }}
+        />
         {contexts.length === 1
           ? `searched "${contexts[0].query}" · ${total} result${total !== 1 ? 's' : ''}`
           : `${contexts.length} searches · ${total} results`}
       </button>
-      {open && (
-        <div
-          className="mt-2 rounded-2xl overflow-hidden"
-          style={{ border: '1px solid rgba(0,0,0,0.07)' }}
-        >
-          <table className="w-full text-[11px]" style={{ borderCollapse: 'collapse' }}>
-            <thead>
-              <tr style={{ background: '#F7F5FF' }}>
-                <th className="text-left px-3.5 py-2.5 font-semibold" style={{ color: '#6C5CE7' }}>query</th>
-                <th className="text-left px-3.5 py-2.5 font-semibold" style={{ color: '#6C5CE7' }}>chunk</th>
-                <th className="text-right px-3.5 py-2.5 font-semibold" style={{ color: '#6C5CE7' }}>score</th>
-              </tr>
-            </thead>
-            <tbody>
-              {contexts.flatMap((ctx, ci) =>
-                (ctx.results ?? []).map((r, ri) => (
-                  <tr key={`${ci}-${ri}`} style={{ borderTop: '1px solid rgba(0,0,0,0.05)' }}>
-                    <td className="px-3.5 py-2.5 align-top" style={{ color: '#6C5CE7', whiteSpace: 'nowrap' }}>
-                      {ri === 0 ? `"${ctx.query}"` : ''}
-                    </td>
-                    <td className="px-3.5 py-2.5" style={{ color: '#636E72', maxWidth: 220 }}>
-                      <span className="line-clamp-2">{r.chunk_text}</span>
-                    </td>
-                    <td className="px-3.5 py-2.5 text-right font-mono align-top" style={{ color: '#00B894', whiteSpace: 'nowrap' }}>
-                      {(r.similarity * 100).toFixed(1)}%
-                    </td>
+      <AnimatePresence initial={false}>
+        {open && (
+          <motion.div
+            initial={{ opacity: 0, height: 0, marginTop: 0 }}
+            animate={{ opacity: 1, height: 'auto', marginTop: 8 }}
+            exit={{ opacity: 0, height: 0, marginTop: 0 }}
+            transition={{ duration: 0.18, ease: [0.16, 1, 0.3, 1] }}
+            className="overflow-hidden"
+          >
+            <div
+              className="rounded-[10px] overflow-hidden"
+              style={{ border: '1px solid rgba(0,0,0,0.06)', background: '#fff' }}
+            >
+              <table className="w-full text-[11px]" style={{ borderCollapse: 'collapse' }}>
+                <thead>
+                  <tr>
+                    <th className="text-left px-3 py-2 font-semibold uppercase tracking-wider" style={{ color: '#9a9aa4', fontSize: 10, letterSpacing: '0.08em', borderBottom: '1px solid rgba(0,0,0,0.06)' }}>query</th>
+                    <th className="text-left px-3 py-2 font-semibold uppercase tracking-wider" style={{ color: '#9a9aa4', fontSize: 10, letterSpacing: '0.08em', borderBottom: '1px solid rgba(0,0,0,0.06)' }}>chunk</th>
+                    <th className="text-right px-3 py-2 font-semibold uppercase tracking-wider" style={{ color: '#9a9aa4', fontSize: 10, letterSpacing: '0.08em', borderBottom: '1px solid rgba(0,0,0,0.06)' }}>score</th>
                   </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        </div>
-      )}
+                </thead>
+                <tbody>
+                  {contexts.flatMap((ctx, ci) =>
+                    (ctx.results ?? []).map((r, ri) => (
+                      <tr key={`${ci}-${ri}`} style={{ borderTop: ri === 0 && ci === 0 ? 'none' : '1px solid rgba(0,0,0,0.04)' }}>
+                        <td className="px-3 py-2.5 align-top" style={{ color: '#7C6DD8', whiteSpace: 'nowrap', fontWeight: 500 }}>
+                          {ri === 0 ? `"${ctx.query}"` : ''}
+                        </td>
+                        <td className="px-3 py-2.5" style={{ color: '#52525b', maxWidth: 220 }}>
+                          <span className="line-clamp-2">{r.chunk_text}</span>
+                        </td>
+                        <td className="px-3 py-2.5 text-right font-mono align-top tabular-nums" style={{ color: '#16a34a', whiteSpace: 'nowrap', fontSize: 10.5 }}>
+                          {(r.similarity * 100).toFixed(1)}%
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
@@ -107,32 +123,27 @@ function Message({ msg }: { msg: DisplayMessage }) {
       className={`flex items-end gap-3 ${isUser ? 'flex-row-reverse' : ''}`}
     >
       {!isUser && (
-        <div
-          className="w-8 h-8 rounded-full flex-shrink-0 flex items-center justify-center text-[11px] font-bold"
-          style={{ background: '#F0EDFF', color: '#6C5CE7' }}
-        >
-          r
-        </div>
+        <div className="remmy-avatar w-8 h-8 rounded-full flex-shrink-0" />
       )}
       <div
         className={`flex flex-col gap-1.5 ${isUser ? 'items-end' : 'items-start'}`}
         style={{ maxWidth: '85%' }}
       >
         <div
-          className="text-[14.5px] leading-[1.65] whitespace-pre-wrap"
+          className="text-[13px] leading-[1.6] whitespace-pre-wrap"
           style={isUser ? {
-            background: '#111',
-            color: '#fff',
-            borderRadius: '20px 20px 6px 20px',
-            padding: '12px 20px',
-            boxShadow: '0 2px 8px rgba(0,0,0,0.04)',
+            background: 'linear-gradient(135deg, #3B4252 0%, #2E3440 100%)',
+            color: '#ECEFF4',
+            borderRadius: '16px 16px 4px 16px',
+            padding: '9px 13px',
+            boxShadow: '0 1px 3px rgba(46, 52, 64, 0.22)',
           } : {
             background: '#fff',
             color: '#1a1a1a',
-            border: '1px solid rgba(0,0,0,0.04)',
-            borderRadius: '20px 20px 20px 6px',
-            padding: '12px 20px',
-            boxShadow: '0 2px 12px rgba(0,0,0,0.02)',
+            border: '1px solid rgba(0,0,0,0.05)',
+            borderRadius: '16px 16px 16px 4px',
+            padding: '9px 13px',
+            boxShadow: '0 1px 2px rgba(0,0,0,0.02)',
           }}
         >
           {msg.content}
@@ -146,6 +157,12 @@ function Message({ msg }: { msg: DisplayMessage }) {
 }
 
 /* ── Chat Page ── */
+
+const SUGGESTIONS: { text: string; tone: 'lavender' | 'pink' | 'mint' | 'sky' | 'butter' }[] = [
+  { text: 'how am i doing this week?', tone: 'lavender' },
+  { text: 'what habits did i miss?', tone: 'pink' },
+  { text: 'summarise my logs', tone: 'mint' },
+];
 
 export default function Chat() {
   const navigate = useNavigate();
@@ -252,72 +269,102 @@ export default function Chat() {
     }
   };
 
+  const canSubmit = input.trim().length > 0 && !loading;
+
   return (
     <div
-      className="flex flex-col items-center"
-      style={{ height: '100dvh', background: 'var(--bg, #F8F7F5)' }}
+      className="relative flex flex-col items-center overflow-hidden"
+      style={{ height: '100dvh', background: 'var(--bg, #fafafa)' }}
     >
-      <div className="w-full max-w-xl flex flex-col" style={{ height: '100dvh' }}>
+      {/* Blurred gradient blobs — decorative */}
+      <div
+        aria-hidden
+        className="pointer-events-none absolute"
+        style={{
+          top: '20%',
+          right: -100,
+          width: 360,
+          height: 360,
+          borderRadius: '50%',
+          background: 'radial-gradient(circle, rgba(162,155,254,0.35) 0%, rgba(162,155,254,0) 70%)',
+          filter: 'blur(60px)',
+          zIndex: 0,
+        }}
+      />
+      <div
+        aria-hidden
+        className="pointer-events-none absolute"
+        style={{
+          top: '45%',
+          left: -140,
+          width: 340,
+          height: 340,
+          borderRadius: '50%',
+          background: 'radial-gradient(circle, rgba(232,67,147,0.22) 0%, rgba(232,67,147,0) 70%)',
+          filter: 'blur(70px)',
+          zIndex: 0,
+        }}
+      />
+
+      <div className="relative w-full max-w-xl flex flex-col" style={{ height: '100dvh' }}>
 
         {/* ── Navbar ── */}
         <div
           className="flex-shrink-0 flex items-center justify-between px-5 sm:px-8"
           style={{
-            height: 60,
-            background: 'rgba(248,247,245,0.85)',
-            backdropFilter: 'blur(20px)',
-            boxShadow: '0 1px 12px rgba(0,0,0,0.03)',
-            zIndex: 10,
+            height: 56,
+            background: 'rgba(250,250,250,0.92)',
+            backdropFilter: 'blur(18px)',
+            WebkitBackdropFilter: 'blur(18px)',
+            borderBottom: '1px solid rgba(0,0,0,0.06)',
+            position: 'relative',
+            zIndex: 20,
           }}
         >
-          {/* Back */}
           <button
             onClick={() => navigate('/me')}
-            className="flex items-center gap-1.5 rounded-xl px-3 py-2 transition-colors hover:bg-black/[0.05] active:bg-black/[0.08]"
-            style={{ color: '#636E72', marginLeft: -8 }}
+            className="flex items-center gap-1 transition-opacity hover:opacity-60 active:opacity-40"
+            style={{ color: '#3a3a42', marginLeft: -2, padding: '6px 6px 6px 0' }}
           >
-            <ChevronLeft size={16} strokeWidth={2.5} />
-            <span className="text-[13px] font-semibold">feed</span>
+            <ChevronLeft size={16} strokeWidth={2.2} />
+            <span className="text-[13px] font-medium" style={{ letterSpacing: '-0.01em' }}>feed</span>
           </button>
 
-          {/* Logo */}
-          <span
-            className="text-[17px] font-extrabold"
+          <button
+            onClick={() => navigate('/me')}
+            className="text-[17px] font-extrabold transition-opacity hover:opacity-70"
             style={{ color: '#111', letterSpacing: '-0.04em' }}
           >
             remmy
-          </span>
+          </button>
 
-          {/* Spacer to balance back button */}
-          <div style={{ width: 72 }} />
+          <div style={{ width: 56 }} />
         </div>
 
         {/* ── Messages ── */}
         <div
           ref={scrollContainerRef}
-          className="flex-1 overflow-y-auto"
+          className="flex-1 overflow-y-auto hide-scrollbar"
           style={{ overscrollBehavior: 'contain' }}
         >
-          <div className="flex flex-col gap-4 px-5 sm:px-8 py-8">
+          <div className="flex flex-col gap-4 px-5 sm:px-8 pt-8 pb-12">
 
-            {/* Older messages sentinel */}
             {hasOlder && (
               <div ref={sentinelRef} className="flex justify-center pb-2">
                 {loadingOlder && (
                   <span
                     className="w-4 h-4 rounded-full border-[1.5px] border-transparent animate-spin block"
-                    style={{ borderTopColor: '#6C5CE7', borderRightColor: 'rgba(108,92,231,0.2)' }}
+                    style={{ borderTopColor: '#111', borderRightColor: 'rgba(0,0,0,0.15)' }}
                   />
                 )}
               </div>
             )}
 
-            {/* History loading */}
             {historyLoading ? (
               <div className="flex items-center justify-center" style={{ paddingTop: 80 }}>
                 <span
                   className="w-5 h-5 rounded-full border-[1.5px] border-transparent animate-spin block"
-                  style={{ borderTopColor: '#6C5CE7', borderRightColor: 'rgba(108,92,231,0.2)' }}
+                  style={{ borderTopColor: '#111', borderRightColor: 'rgba(0,0,0,0.15)' }}
                 />
               </div>
             ) : history.length === 0 && !loading ? (
@@ -326,45 +373,44 @@ export default function Chat() {
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.3 }}
-                className="flex flex-col items-center justify-center gap-4"
-                style={{ paddingTop: 80 }}
+                className="flex flex-col items-center justify-center gap-5"
+                style={{ paddingTop: 72 }}
               >
                 <div
-                  className="w-14 h-14 rounded-2xl flex items-center justify-center text-[20px] font-black"
-                  style={{ background: '#F0EDFF', color: '#6C5CE7' }}
-                >
-                  r
-                </div>
+                  className="remmy-avatar w-14 h-14"
+                  style={{ borderRadius: 18 }}
+                />
                 <div className="flex flex-col items-center gap-1.5">
-                  <p className="text-[14px] font-semibold" style={{ color: '#2d3436' }}>
+                  <p
+                    className="text-[18px] font-semibold"
+                    style={{
+                      color: '#111',
+                      letterSpacing: '-0.02em',
+                      fontFamily: 'ui-serif, Georgia, "Times New Roman", serif',
+                    }}
+                  >
                     ask remmy anything
                   </p>
-                  <p className="text-[13px] text-center" style={{ color: '#b2bec3', maxWidth: 220 }}>
+                  <p className="text-[13px] text-center" style={{ color: '#9a9aa4', maxWidth: 240, letterSpacing: '-0.01em' }}>
                     habits, patterns, what you logged last week…
                   </p>
                 </div>
 
-                {/* Suggestion chips */}
-                <div className="flex flex-wrap justify-center gap-2 mt-2">
-                  {[
-                    'how am i doing this week?',
-                    'what habits did i miss?',
-                    'summarise my logs',
-                  ].map(s => (
+                <div className="flex flex-wrap justify-center gap-2 mt-1">
+                  {SUGGESTIONS.map(s => (
                     <button
-                      key={s}
-                      onClick={() => setInput(s)}
-                      className="text-[12px] font-medium px-3.5 py-2 rounded-full transition-colors hover:bg-[#E8E4FF]"
-                      style={{ background: '#F0EDFF', color: '#7C6DD8' }}
+                      key={s.text}
+                      onClick={() => setInput(s.text)}
+                      className="suggestion-pill-pastel"
+                      data-tone={s.tone}
                     >
-                      {s}
+                      {s.text}
                     </button>
                   ))}
                 </div>
               </motion.div>
             ) : null}
 
-            {/* Messages list */}
             <AnimatePresence initial={false}>
               {history.map((msg, i) => (
                 <Message key={msg.id ?? `local-${i}`} msg={msg} />
@@ -378,32 +424,15 @@ export default function Chat() {
 
         {/* ── Input bar ── */}
         <div
-          className="flex-shrink-0 px-5 sm:px-8 pb-6 pt-4 relative z-10"
+          className="flex-shrink-0 px-5 sm:px-8 pt-3"
           style={{
-            background: 'rgba(248,247,245,0.85)',
-            backdropFilter: 'blur(20px)',
-            boxShadow: '0 -4px 20px rgba(0,0,0,0.02)',
+            position: 'relative',
+            zIndex: 20,
+            paddingBottom: 28,
+            background: 'linear-gradient(to top, rgba(250,250,250,1) 60%, rgba(250,250,250,0))',
           }}
         >
-          <div
-            className="flex items-end gap-3 rounded-[20px] px-2 py-2"
-            style={{
-              background: '#fff',
-              border: '1px solid rgba(0,0,0,0.06)',
-              boxShadow: '0 2px 12px rgba(0,0,0,0.03)',
-              transition: 'border-color 0.15s, box-shadow 0.15s',
-            }}
-            onFocusCapture={e => {
-              const el = e.currentTarget;
-              el.style.borderColor = '#A29BFE';
-              el.style.boxShadow = '0 0 0 3px rgba(108,92,231,0.08)';
-            }}
-            onBlurCapture={e => {
-              const el = e.currentTarget;
-              el.style.borderColor = 'rgba(0,0,0,0.06)';
-              el.style.boxShadow = '0 2px 12px rgba(0,0,0,0.03)';
-            }}
-          >
+          <div className="chat-input-shell">
             <textarea
               ref={textareaRef}
               value={input}
@@ -411,43 +440,48 @@ export default function Chat() {
               onKeyDown={onKeyDown}
               placeholder="ask anything…"
               rows={1}
-              className="flex-1 resize-none outline-none bg-transparent text-[14.5px] leading-[1.6]"
+              className="w-full resize-none outline-none bg-transparent text-[13.5px] leading-[1.55] placeholder:text-[#b8b8c0] hide-scrollbar block"
               style={{
                 color: '#111',
-                maxHeight: 140,
+                maxHeight: 160,
                 minHeight: 22,
-                paddingTop: 8,
-                paddingBottom: 8,
-                paddingLeft: 14,
+                padding: '14px 18px 2px 18px',
+                letterSpacing: '-0.005em',
               }}
               onInput={e => {
                 const t = e.currentTarget;
                 t.style.height = 'auto';
-                t.style.height = Math.min(t.scrollHeight, 140) + 'px';
+                t.style.height = Math.min(t.scrollHeight, 160) + 'px';
               }}
             />
-            <button
-              onClick={submit}
-              disabled={!input.trim() || loading}
-              className="flex-shrink-0 w-9 h-9 mb-1 mr-1 rounded-full flex items-center justify-center transition-all active:scale-95"
-              style={{
-                background: input.trim() && !loading ? '#111' : 'rgba(0,0,0,0.06)',
-                transition: 'background 0.15s, opacity 0.15s',
-              }}
+            <div
+              className="flex items-center justify-between"
+              style={{ padding: '6px 8px 8px 18px' }}
             >
-              {loading ? (
-                <span
-                  className="w-3.5 h-3.5 rounded-full border-[1.5px] border-transparent animate-spin block"
-                  style={{ borderTopColor: '#fff', borderRightColor: 'rgba(255,255,255,0.3)' }}
-                />
-              ) : (
-                <ArrowUp size={15} color={input.trim() ? '#fff' : '#aaa'} strokeWidth={2.5} />
-              )}
-            </button>
+              <span
+                className="text-[10.5px] leading-none"
+                style={{ color: '#c4c4ca', letterSpacing: '0.02em' }}
+              >
+                shift + enter for new line
+              </span>
+              <button
+                onClick={submit}
+                disabled={!canSubmit}
+                className="chat-send flex-shrink-0 rounded-full flex items-center justify-center"
+                style={{ width: 32, height: 32 }}
+                aria-label="send message"
+              >
+                {loading ? (
+                  <span
+                    className="w-3 h-3 rounded-full border-[1.5px] border-transparent animate-spin block"
+                    style={{ borderTopColor: '#fff', borderRightColor: 'rgba(255,255,255,0.3)' }}
+                  />
+                ) : (
+                  <ArrowUp size={14} strokeWidth={2.8} />
+                )}
+              </button>
+            </div>
           </div>
-          <p className="text-center text-[12px] font-medium mt-3" style={{ color: '#b2bec3' }}>
-            shift + enter for new line
-          </p>
         </div>
 
       </div>
