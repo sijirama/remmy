@@ -3,6 +3,7 @@ export interface Log {
   user_id: number;
   type: 'audio' | 'image';
   status: 'processing' | 'ready' | 'failed';
+  title: string;
   raw_file_url: string;
   raw_transcript?: string;
   raw_description?: string;

@@ -73,6 +73,7 @@ func ProcessLog(ctx context.Context, job ProcessingJob) error {
 	if err := database.DB.First(&entry, "id = ?", job.LogID).Error; err != nil {
 		return fmt.Errorf("fetch log for update: %w", err)
 	}
+	entry.Title = result.Title
 	entry.RewrittenContent = result.Rewritten
 	entry.HabitMatches = result.Habits
 	database.DB.Save(&entry)

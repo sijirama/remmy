@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"strings"
 
 	"remmy/internal/models"
 
@@ -50,4 +51,37 @@ func InitializeDatabase() {
 	}
 
 	log.Println("[Remmy] Database migrations complete")
+}
+
+// BackfillTitles sets a default title on any logs that don't have one yet.
+// Derives the title from rewritten_content (first 6 words) or falls back to type + date.
+func BackfillTitles() {
+	var logs []models.Log
+	if err := DB.Where("title = ''").Find(&logs).Error; err != nil {
+		log.Printf("[Remmy] BackfillTitles: query failed: %v", err)
+		return
+	}
+	if len(logs) == 0 {
+		return
+	}
+	log.Printf("[Remmy] BackfillTitles: backfilling %d logs", len(logs))
+	for _, l := range logs {
+		title := deriveTitle(l.RewrittenContent, l.Type, l.LoggedAt.Format("Jan 2"))
+		DB.Model(&models.Log{}).Where("id = ?", l.ID).Update("title", title)
+	}
+	log.Printf("[Remmy] BackfillTitles: done")
+}
+
+func deriveTitle(rewritten, logType, dateStr string) string {
+	if rewritten != "" {
+		words := strings.Fields(rewritten)
+		if len(words) > 6 {
+			return strings.Join(words[:6], " ") + "…"
+		}
+		return strings.Join(words, " ")
+	}
+	if logType == "audio" {
+		return "Voice memo · " + dateStr
+	}
+	return "Photo · " + dateStr
 }

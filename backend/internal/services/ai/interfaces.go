@@ -11,6 +11,7 @@ type VisionModel interface {
 }
 
 type UnderstandingResult struct {
+	Title     string
 	Rewritten string
 	Habits    []string
 }

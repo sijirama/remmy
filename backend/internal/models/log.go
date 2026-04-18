@@ -11,6 +11,7 @@ type Log struct {
 	UserID           uint      `gorm:"not null;index" json:"user_id"`
 	Type             string    `gorm:"size:10;not null" json:"type"`
 	Status           string    `gorm:"size:20;not null;default:'processing'" json:"status"`
+	Title            string    `gorm:"size:200" json:"title"`
 	RawFileURL       string    `gorm:"not null" json:"raw_file_url"`
 	RawTranscript    string    `json:"raw_transcript,omitempty"`
 	RawDescription   string    `json:"raw_description,omitempty"`

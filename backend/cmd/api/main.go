@@ -40,6 +40,7 @@ func buildAllowedOrigins() map[string]struct{} {
 func main() {
 	initializers.InitializeEnv()
 	database.InitializeDatabase()
+	database.BackfillTitles()
 	database.InitializeRedis()
 	initializers.InitGothic()
 	jwt.InitJWT()

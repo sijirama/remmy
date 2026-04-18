@@ -19,6 +19,7 @@ func NewGeminiUnderstanding(client *genai.Client) *GeminiUnderstanding {
 }
 
 type rewriteResponse struct {
+	Title     string   `json:"title"`
 	Rewritten string   `json:"rewritten"`
 	Habits    []string `json:"habits"`
 }
@@ -26,9 +27,11 @@ type rewriteResponse struct {
 func (g *GeminiUnderstanding) Rewrite(ctx context.Context, raw string, logType string) (*UnderstandingResult, error) {
 	prompt := fmt.Sprintf(`You are processing a personal daily log entry. The user has either spoken a voice memo or captured an image. Your job is to:
 
-1. Rewrite the raw content into clean, structured prose that preserves all meaning and detail but reads clearly
-2. Extract any habits or activities mentioned
-3. Return a JSON object with:
+1. Generate a short title (3-6 words) that captures the essence of the entry
+2. Rewrite the raw content into clean, structured prose that preserves all meaning and detail but reads clearly
+3. Extract any habits or activities mentioned
+4. Return a JSON object with:
+   - title: string (3-6 word title)
    - rewritten: string (the clean rewritten content)
    - habits: string[] (list of habits or activities detected)
 
@@ -60,6 +63,7 @@ Return only valid JSON. No preamble.`, logType, raw)
 	}
 
 	return &UnderstandingResult{
+		Title:     parsed.Title,
 		Rewritten: parsed.Rewritten,
 		Habits:    parsed.Habits,
 	}, nil
