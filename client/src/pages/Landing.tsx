@@ -1,54 +1,54 @@
 import { motion } from 'framer-motion';
-import { Video, Camera, Mic } from 'lucide-react';
+import { Mic, Camera, MessageCircle } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 
 const floatingMoments = [
-  { icon: Video, time: '2m ago', color: '#7c3aed', x: -340, y: -80, rotate: -8 },
-  { icon: Camera, time: 'just now', color: '#a78bfa', x: 300, y: -120, rotate: 6 },
-  { icon: Mic, time: '1h ago', color: '#8b5cf6', x: -280, y: 140, rotate: -4 },
-  { icon: Camera, time: 'yesterday', color: '#c4b5fd', x: 320, y: 100, rotate: 10 },
+  { icon: Mic, label: 'Voice memo', color: '#6C5CE7', bg: '#F0EDFF', x: -320, y: -90, rotate: -6 },
+  { icon: Camera, label: 'Photo', color: '#E84393', bg: '#FFF0F3', x: 300, y: -120, rotate: 5 },
+  { icon: MessageCircle, label: 'Chat', color: '#0984E3', bg: '#E8F4FD', x: -260, y: 130, rotate: -3 },
+  { icon: Camera, label: 'Memory', color: '#00B894', bg: '#E8FFF3', x: 310, y: 100, rotate: 8 },
 ];
 
 export default function Landing() {
   const { login } = useAuth();
 
   return (
-    <div className="relative flex flex-col items-center justify-center min-h-screen px-4 overflow-hidden" style={{ background: '#f8f7ff' }}>
+    <div className="relative flex flex-col items-center justify-center min-h-screen px-6 overflow-hidden" style={{ background: 'var(--bg)' }}>
 
       {/* Gradient orbs */}
       <div className="absolute inset-0 pointer-events-none overflow-hidden">
-        <div className="absolute rounded-full" style={{ top: '-100px', left: '50%', transform: 'translateX(-50%)', width: 700, height: 700, background: 'rgba(139,92,246,0.22)', filter: 'blur(120px)' }} />
-        <div className="absolute rounded-full" style={{ bottom: '-60px', left: '10%', width: 400, height: 400, background: 'rgba(167,139,250,0.18)', filter: 'blur(100px)' }} />
-        <div className="absolute rounded-full" style={{ top: '20%', right: '5%', width: 300, height: 300, background: 'rgba(196,181,253,0.22)', filter: 'blur(90px)' }} />
+        <div className="absolute rounded-full" style={{ top: '-120px', left: '50%', transform: 'translateX(-50%)', width: 700, height: 700, background: 'rgba(108,92,231,0.08)', filter: 'blur(120px)' }} />
+        <div className="absolute rounded-full" style={{ bottom: '-80px', left: '10%', width: 400, height: 400, background: 'rgba(162,155,254,0.08)', filter: 'blur(100px)' }} />
+        <div className="absolute rounded-full" style={{ top: '20%', right: '5%', width: 300, height: 300, background: 'rgba(232,67,147,0.06)', filter: 'blur(90px)' }} />
       </div>
 
-      {/* Floating moment cards */}
+      {/* Floating cards */}
       <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-        {floatingMoments.map(({ icon: Icon, time, color, x, y, rotate }, i) => (
+        {floatingMoments.map(({ icon: Icon, label, color, bg, x, y, rotate }, i) => (
           <motion.div
             key={i}
-            className="absolute flex items-center gap-2.5 rounded-2xl px-4 py-3"
+            className="absolute flex items-center gap-3 rounded-2xl px-4 py-3.5"
             style={{
               x, y, rotate,
-              background: 'rgba(255,255,255,0.85)',
+              background: 'rgba(255,255,255,0.9)',
               backdropFilter: 'blur(12px)',
-              border: '1px solid rgba(139,92,246,0.2)',
-              boxShadow: '0 4px 24px rgba(139,92,246,0.1)',
+              border: '1px solid var(--border)',
+              boxShadow: 'var(--shadow-md)',
             }}
             initial={{ opacity: 0, scale: 0.8 }}
-            animate={{ opacity: 0.9, scale: 1, y: [y, y - 8, y] }}
+            animate={{ opacity: 0.85, scale: 1, y: [y, y - 10, y] }}
             transition={{
-              opacity: { delay: 0.4 + i * 0.15, duration: 0.6 },
-              scale: { delay: 0.4 + i * 0.15, duration: 0.6 },
-              y: { delay: 0.4 + i * 0.15, duration: 4 + i * 0.5, repeat: Infinity, ease: 'easeInOut' },
+              opacity: { delay: 0.3 + i * 0.12, duration: 0.5 },
+              scale: { delay: 0.3 + i * 0.12, duration: 0.5 },
+              y: { delay: 0.3 + i * 0.12, duration: 4 + i * 0.5, repeat: Infinity, ease: 'easeInOut' },
             }}
           >
-            <div className="w-8 h-8 rounded-xl flex items-center justify-center" style={{ backgroundColor: color + '18' }}>
-              <Icon size={14} style={{ color }} />
+            <div className="w-9 h-9 rounded-xl flex items-center justify-center" style={{ background: bg }}>
+              <Icon size={15} style={{ color }} />
             </div>
             <div>
-              <div className="w-16 h-2 rounded-full mb-1.5" style={{ background: 'rgba(139,92,246,0.25)' }} />
-              <div className="text-[10px]" style={{ color: '#a78bfa' }}>{time}</div>
+              <div className="text-[13px] font-semibold" style={{ color: '#111' }}>{label}</div>
+              <div className="text-[10px] font-medium" style={{ color: '#b2bec3' }}>just now</div>
             </div>
           </motion.div>
         ))}
@@ -58,45 +58,45 @@ export default function Landing() {
       <div className="relative z-10 flex flex-col items-center text-center">
 
         <motion.h1
-          initial={{ opacity: 0, y: 16 }}
+          initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.45, delay: 0.08 }}
-          className="leading-none tracking-tighter"
-          style={{ fontSize: 68, fontWeight: 800, fontFamily: "'Plus Jakarta Sans', sans-serif", color: '#1a1a1a', letterSpacing: '-0.03em' }}
+          transition={{ duration: 0.5, delay: 0.06 }}
+          className="leading-none"
+          style={{ fontSize: 72, fontWeight: 800, color: '#111', letterSpacing: '-0.04em' }}
         >
           remmy
         </motion.h1>
 
         <motion.p
-          initial={{ opacity: 0, y: 16 }}
+          initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.45, delay: 0.16 }}
-          style={{ marginTop: 16, color: '#9ca3af', fontSize: 17, lineHeight: 1.6, maxWidth: 420 }}
+          transition={{ duration: 0.5, delay: 0.14 }}
+          style={{ marginTop: 20, color: '#636E72', fontSize: 17, lineHeight: 1.7, maxWidth: 400 }}
         >
-          moments pass fast. catch them in video, photos, and voice before they're gone.
+          moments pass fast. catch them in voice, photos, and memories before they're gone.
         </motion.p>
 
         <motion.button
           onClick={login}
-          initial={{ opacity: 0, y: 16 }}
+          initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.45, delay: 0.28 }}
+          transition={{ duration: 0.5, delay: 0.24 }}
           style={{
-            marginTop: 32,
+            marginTop: 36,
             display: 'flex',
             alignItems: 'center',
-            gap: 8,
-            backgroundColor: '#fff',
-            color: '#111',
-            padding: '11px 28px',
+            gap: 10,
+            backgroundColor: '#111',
+            color: '#fff',
+            padding: '13px 32px',
             fontSize: 14,
             fontWeight: 600,
-            borderRadius: 10,
-            border: '1px solid rgba(139,92,246,0.15)',
+            borderRadius: 14,
+            border: 'none',
             cursor: 'pointer',
-            boxShadow: '0 2px 12px rgba(139,92,246,0.08)',
+            boxShadow: '0 4px 20px rgba(0,0,0,0.12)',
           }}
-          whileHover={{ scale: 1.02, backgroundColor: '#f8f7ff' }}
+          whileHover={{ scale: 1.02, boxShadow: '0 6px 24px rgba(0,0,0,0.16)' }}
           whileTap={{ scale: 0.97 }}
         >
           <GoogleIcon />

@@ -9,11 +9,11 @@ export default function NotFound() {
   const destination = !loading && user ? '/me' : '/';
 
   return (
-    <div className="relative flex flex-col items-center justify-center min-h-screen px-4 overflow-hidden" style={{ background: '#f8f7ff' }}>
+    <div className="relative flex flex-col items-center justify-center min-h-screen px-6 overflow-hidden" style={{ background: 'var(--bg)' }}>
 
       <div className="absolute inset-0 pointer-events-none overflow-hidden">
-        <div className="absolute rounded-full" style={{ top: '-100px', left: '50%', transform: 'translateX(-50%)', width: 600, height: 600, background: 'rgba(139,92,246,0.12)', filter: 'blur(120px)' }} />
-        <div className="absolute rounded-full" style={{ bottom: '-60px', right: '10%', width: 300, height: 300, background: 'rgba(196,181,253,0.15)', filter: 'blur(90px)' }} />
+        <div className="absolute rounded-full" style={{ top: '-100px', left: '50%', transform: 'translateX(-50%)', width: 600, height: 600, background: 'rgba(108,92,231,0.06)', filter: 'blur(120px)' }} />
+        <div className="absolute rounded-full" style={{ bottom: '-60px', right: '10%', width: 300, height: 300, background: 'rgba(232,67,147,0.05)', filter: 'blur(90px)' }} />
       </div>
 
       <motion.div
@@ -22,25 +22,25 @@ export default function NotFound() {
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.4 }}
       >
-        <p style={{ fontSize: 80, fontWeight: 800, letterSpacing: '-0.04em', color: '#e5e0ff', fontFamily: "'Plus Jakarta Sans', sans-serif", lineHeight: 1 }}>
+        <p style={{ fontSize: 80, fontWeight: 800, letterSpacing: '-0.04em', color: '#F0EDFF', lineHeight: 1 }}>
           404
         </p>
-        <p style={{ marginTop: 12, fontSize: 16, color: '#9ca3af' }}>
+        <p style={{ marginTop: 12, fontSize: 15, color: '#636E72' }}>
           this page doesn't exist.
         </p>
         <button
           onClick={() => navigate(destination)}
           style={{
             marginTop: 28,
-            padding: '10px 24px',
+            padding: '11px 28px',
             fontSize: 14,
             fontWeight: 600,
-            borderRadius: 10,
-            border: '1px solid rgba(139,92,246,0.2)',
+            borderRadius: 12,
+            border: '1px solid var(--border)',
             background: '#fff',
-            color: '#7c3aed',
+            color: '#111',
             cursor: 'pointer',
-            boxShadow: '0 2px 12px rgba(139,92,246,0.08)',
+            boxShadow: 'var(--shadow-sm)',
           }}
         >
           {!loading && user ? 'back to home' : 'go to landing'}

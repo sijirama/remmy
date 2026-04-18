@@ -1,10 +1,13 @@
 import { useState, useRef, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { ChevronLeft, Play, Pause } from 'lucide-react';
+import { ChevronLeft, Play, Pause, Mic, Image } from 'lucide-react';
 import { toast } from 'sonner';
 import { fetchLog } from '../lib/logs';
 import type { Log } from '../lib/types';
+import HabitChips from '../components/feed/HabitChips';
+
+/* ── Helpers ── */
 
 function fmtDate(iso: string) {
   return new Date(iso).toLocaleDateString('en-US', {
@@ -22,6 +25,8 @@ function fmtDuration(s: number) {
 function wordCount(text: string) {
   return text.trim().split(/\s+/).filter(Boolean).length;
 }
+
+/* ── Sticky Audio Player ── */
 
 function StickyAudioPlayer({ src }: { src: string }) {
   const audioRef = useRef<HTMLAudioElement>(null);
@@ -66,44 +71,46 @@ function StickyAudioPlayer({ src }: { src: string }) {
   return (
     <div
       className="fixed bottom-0 left-0 right-0 z-20 flex justify-center"
-      style={{ background: 'rgba(255,255,255,0.95)', backdropFilter: 'blur(16px)', borderTop: '1px solid rgba(0,0,0,0.06)' }}
+      style={{ background: 'rgba(255,255,255,0.96)', backdropFilter: 'blur(20px)', borderTop: '1px solid var(--border)' }}
     >
       <audio ref={audioRef} src={src} preload="metadata" />
-      <div className="w-full max-w-[480px] px-5 py-4 flex items-center gap-4">
+      <div className="w-full max-w-[520px] px-6 py-4 flex items-center gap-4">
         <button
           onClick={toggle}
-          className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 transition-transform active:scale-90"
-          style={{ background: '#1a1a1a' }}
+          className="w-11 h-11 rounded-full flex items-center justify-center flex-shrink-0 transition-transform active:scale-90"
+          style={{ background: '#111' }}
         >
           {playing
-            ? <Pause size={14} color="#fff" fill="#fff" />
-            : <Play size={14} color="#fff" fill="#fff" style={{ marginLeft: 1 }} />
+            ? <Pause size={15} color="#fff" fill="#fff" />
+            : <Play size={15} color="#fff" fill="#fff" style={{ marginLeft: 2 }} />
           }
         </button>
-        <div className="flex-1 flex flex-col gap-1.5">
+        <div className="flex-1 flex flex-col gap-2">
           <div
-            className="relative h-1 rounded-full cursor-pointer"
-            style={{ background: 'rgba(0,0,0,0.1)' }}
+            className="relative h-1.5 rounded-full cursor-pointer group"
+            style={{ background: 'rgba(0,0,0,0.08)' }}
             onClick={seek}
           >
             <div
-              className="absolute left-0 top-0 h-full rounded-full"
-              style={{ width: `${progress}%`, background: '#1a1a1a' }}
+              className="absolute left-0 top-0 h-full rounded-full transition-all"
+              style={{ width: `${progress}%`, background: '#111' }}
             />
             <div
-              className="absolute top-1/2 -translate-y-1/2 w-3 h-3 rounded-full border-2 border-white shadow-sm"
-              style={{ left: `${progress}%`, transform: `translateX(-50%) translateY(-50%)`, background: '#1a1a1a' }}
+              className="absolute top-1/2 w-3.5 h-3.5 rounded-full border-2 border-white opacity-0 group-hover:opacity-100 transition-opacity"
+              style={{ left: `${progress}%`, transform: 'translateX(-50%) translateY(-50%)', background: '#111', boxShadow: 'var(--shadow-sm)' }}
             />
           </div>
           <div className="flex justify-between">
-            <span className="text-xs font-mono" style={{ color: '#9ca3af' }}>{currentStr}</span>
-            {durationStr && <span className="text-xs font-mono" style={{ color: '#9ca3af' }}>{durationStr}</span>}
+            <span className="text-[11px] font-medium tabular-nums" style={{ color: '#b2bec3' }}>{currentStr}</span>
+            {durationStr && <span className="text-[11px] font-medium tabular-nums" style={{ color: '#b2bec3' }}>{durationStr}</span>}
           </div>
         </div>
       </div>
     </div>
   );
 }
+
+/* ── Log Detail ── */
 
 export default function LogDetail() {
   const { id } = useParams<{ id: string }>();
@@ -121,8 +128,8 @@ export default function LogDetail() {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center" style={{ background: '#fff' }}>
-        <span className="w-5 h-5 rounded-full border-2 border-transparent border-t-gray-300 animate-spin block" />
+      <div className="min-h-screen flex items-center justify-center" style={{ background: 'var(--bg)' }}>
+        <span className="w-5 h-5 rounded-full border-2 border-gray-200 border-t-[#6C5CE7] animate-spin block" />
       </div>
     );
   }
@@ -134,20 +141,22 @@ export default function LogDetail() {
   const wc = content ? wordCount(content) : null;
 
   return (
-    <div className="min-h-screen" style={{ background: '#fff' }}>
-      <div className="flex justify-center">
-        <div className="w-full max-w-[480px]">
+    <div className="min-h-screen" style={{ background: 'var(--bg)' }}>
+      <div className="flex justify-center px-4">
+        <div className="w-full max-w-[580px]">
 
           {/* Header */}
           <div
-            className="sticky top-0 z-10 px-5 pt-5 pb-3"
-            style={{ background: 'rgba(255,255,255,0.92)', backdropFilter: 'blur(12px)' }}
+            className="sticky top-0 z-10 px-6 sm:px-8 pt-5 pb-3"
+            style={{ background: 'rgba(250,250,250,0.92)', backdropFilter: 'blur(16px)' }}
           >
             <button
               onClick={() => navigate(-1)}
-              className="flex items-center justify-center w-8 h-8 rounded-full transition-colors hover:bg-black/5 active:bg-black/10"
+              className="flex items-center gap-1 transition-colors hover:opacity-70 active:opacity-50"
+              style={{ color: '#636E72' }}
             >
-              <ChevronLeft size={20} style={{ color: '#1a1a1a' }} />
+              <ChevronLeft size={18} />
+              <span className="text-sm font-medium">back</span>
             </button>
           </div>
 
@@ -155,65 +164,80 @@ export default function LogDetail() {
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.22 }}
-            className="px-5 pb-32 flex flex-col gap-5 pt-2"
+            className="px-6 sm:px-8 pb-32 flex flex-col gap-6 pt-3"
           >
             {/* Date */}
-            <p className="text-sm" style={{ color: '#9ca3af' }}>{fmtDate(log.logged_at)}</p>
+            <p className="text-[13px] font-medium" style={{ color: '#b2bec3' }}>
+              {fmtDate(log.logged_at)}
+            </p>
 
             {/* Title */}
             <h1
               style={{
-                fontFamily: "'Plus Jakarta Sans', sans-serif",
-                fontSize: '2rem',
+                fontSize: '1.875rem',
                 fontWeight: 800,
                 lineHeight: 1.15,
-                letterSpacing: '-0.025em',
-                color: '#1a1a1a',
+                letterSpacing: '-0.03em',
+                color: '#111',
               }}
             >
               {title}
             </h1>
 
-            {/* Metadata row */}
+            {/* Metadata badges */}
             <div className="flex items-center gap-2 flex-wrap">
-              {log.habit_matches?.map(h => (
-                <span
-                  key={h}
-                  className="flex items-center gap-1 text-xs px-2.5 py-1 rounded-full font-medium"
-                  style={{ background: 'rgba(139,92,246,0.1)', color: '#7c3aed' }}
-                >
-                  {h}
-                </span>
-              ))}
+              {/* Type badge */}
+              <span
+                className="inline-flex items-center gap-1.5 text-[11px] font-semibold px-3 py-1.5 rounded-full"
+                style={{
+                  background: log.type === 'audio' ? '#F0EDFF' : '#FFF0F3',
+                  color: log.type === 'audio' ? '#6C5CE7' : '#E84393',
+                }}
+              >
+                {log.type === 'audio'
+                  ? <><Mic size={11} /> Voice Memo</>
+                  : <><Image size={11} /> Photo</>
+                }
+              </span>
+
+              {/* Word count */}
               {wc && (
                 <span
-                  className="text-xs px-2.5 py-1 rounded-full font-medium"
-                  style={{ background: 'rgba(0,0,0,0.05)', color: '#6b7280' }}
+                  className="text-[11px] font-semibold px-3 py-1.5 rounded-full"
+                  style={{ background: 'rgba(0,0,0,0.04)', color: '#636E72' }}
                 >
                   {wc} words
                 </span>
+              )}
+
+              {/* Habits */}
+              {log.habit_matches?.length > 0 && (
+                <HabitChips habits={log.habit_matches} />
               )}
             </div>
 
             {/* Image */}
             {log.type === 'image' && log.raw_file_url && (
-              <div className="rounded-2xl overflow-hidden" style={{ border: '1px solid rgba(0,0,0,0.06)' }}>
+              <div
+                className="rounded-2xl overflow-hidden"
+                style={{ border: '1px solid var(--border)', boxShadow: 'var(--shadow-sm)' }}
+              >
                 <img
                   src={log.raw_file_url}
                   alt="log"
                   className="w-full object-cover"
-                  style={{ maxHeight: 320 }}
+                  style={{ maxHeight: 340 }}
                 />
               </div>
             )}
 
-            {/* Divider */}
-            <div style={{ height: 1, background: 'rgba(0,0,0,0.06)' }} />
+            {/* Dotted divider */}
+            <hr className="feed-separator" />
 
             {/* Content */}
             {content && (
               <p
-                className="text-[0.95rem] leading-relaxed"
+                className="text-[15px] leading-[1.7]"
                 style={{ color: '#374151', whiteSpace: 'pre-wrap' }}
               >
                 {content}
@@ -224,14 +248,14 @@ export default function LogDetail() {
             {log.rewritten_content && (log.raw_transcript || log.raw_description) && (
               <details className="mt-2">
                 <summary
-                  className="text-xs cursor-pointer select-none"
-                  style={{ color: '#9ca3af' }}
+                  className="text-[12px] cursor-pointer select-none font-medium"
+                  style={{ color: '#b2bec3' }}
                 >
                   raw {log.type === 'audio' ? 'transcript' : 'description'}
                 </summary>
                 <p
-                  className="mt-2 text-sm leading-relaxed"
-                  style={{ color: '#9ca3af', whiteSpace: 'pre-wrap' }}
+                  className="mt-3 text-[13px] leading-relaxed rounded-xl p-4"
+                  style={{ color: '#636E72', whiteSpace: 'pre-wrap', background: 'rgba(0,0,0,0.02)' }}
                 >
                   {log.raw_transcript || log.raw_description}
                 </p>
