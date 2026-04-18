@@ -453,20 +453,7 @@ export default function Dashboard() {
             </div>
           </motion.div>
 
-          {/* ── Header ── */}
-          <motion.div
-            initial={{ opacity: 0, y: 8 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.3, delay: 0.06 }}
-            className="flex items-center mb-1"
-          >
-            <h1
-              className="text-[1.75rem] sm:text-[2.25rem] font-extrabold leading-none tracking-tight"
-              style={{ letterSpacing: '-0.04em', color: '#111' }}
-            >
-              {getRelativeDayLabel(date)}
-            </h1>
-          </motion.div>
+
 
           {/* ── Week strip ── */}
           <motion.div

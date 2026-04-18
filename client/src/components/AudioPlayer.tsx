@@ -22,14 +22,24 @@ export default function AudioPlayer({ src, size = 'sm' }: Props) {
   useEffect(() => {
     const a = audioRef.current;
     if (!a) return;
-    const onLoaded = () => setDuration(a.duration || 0);
+    
+    // Force mobile Safari to load the media
+    a.load();
+
+    const onLoaded = () => {
+      // Audio blobs from MediaRecorder sometimes report Infinity duration
+      setDuration(a.duration === Infinity ? 0 : a.duration || 0);
+    };
     const onTime = () => setCurrent(a.currentTime);
     const onEnd = () => { setPlaying(false); setCurrent(0); };
+    
     a.addEventListener('loadedmetadata', onLoaded);
+    a.addEventListener('durationchange', onLoaded); // catch delayed duration updates
     a.addEventListener('timeupdate', onTime);
     a.addEventListener('ended', onEnd);
     return () => {
       a.removeEventListener('loadedmetadata', onLoaded);
+      a.removeEventListener('durationchange', onLoaded);
       a.removeEventListener('timeupdate', onTime);
       a.removeEventListener('ended', onEnd);
     };
@@ -40,8 +50,17 @@ export default function AudioPlayer({ src, size = 'sm' }: Props) {
     e.stopPropagation();
     const a = audioRef.current;
     if (!a) return;
-    if (playing) { a.pause(); setPlaying(false); }
-    else { a.play(); setPlaying(true); }
+    if (playing) { 
+      a.pause(); 
+      setPlaying(false); 
+    } else { 
+      a.play().then(() => {
+        setPlaying(true);
+        if (a.duration && a.duration !== Infinity) setDuration(a.duration);
+      }).catch(err => {
+        console.error('Audio play failed:', err);
+      });
+    }
   };
 
   const seek = (e: React.MouseEvent) => {
@@ -71,7 +90,12 @@ export default function AudioPlayer({ src, size = 'sm' }: Props) {
       }}
       onClick={e => e.preventDefault()}
     >
-      <audio ref={audioRef} src={src} preload="metadata" className="hidden" />
+      <audio 
+        ref={audioRef} 
+        src={src} 
+        preload="auto" 
+        style={{ position: 'absolute', width: 0, height: 0, opacity: 0, pointerEvents: 'none' }} 
+      />
 
       <button
         onClick={toggle}
