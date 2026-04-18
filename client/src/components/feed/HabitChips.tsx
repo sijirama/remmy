@@ -1,53 +1,56 @@
-const PASTEL_COLORS = [
-  { bg: '#F0EDFF', text: '#7C6DD8' },
-  { bg: '#FFF0F3', text: '#D4457A' },
-  { bg: '#FFF8E1', text: '#C4793E' },
-  { bg: '#EDFCF4', text: '#2D9D6E' },
-  { bg: '#EEF4FB', text: '#4A8DC7' },
-  { bg: '#FFF2EC', text: '#C06030' },
-];
-
-function hashColor(str: string) {
-  let hash = 0;
-  for (let i = 0; i < str.length; i++) {
-    hash = str.charCodeAt(i) + ((hash << 5) - hash);
-  }
-  return PASTEL_COLORS[Math.abs(hash) % PASTEL_COLORS.length];
-}
-
 interface Props {
   habits: string[];
   max?: number;
 }
 
-export default function HabitChips({ habits, max }: Props) {
-  if (!habits || habits.length === 0) return null;
+const PASTEL_PALETTE = [
+  { bg: '#F0EDFF', color: '#7C6DD8' },
+  { bg: '#FCE7F3', color: '#C0527A' },
+  { bg: '#E0F2FE', color: '#0369A1' },
+  { bg: '#DCFCE7', color: '#15803D' },
+  { bg: '#FEF9C3', color: '#A16207' },
+  { bg: '#FFE4E6', color: '#BE123C' },
+];
 
-  const visible = max ? habits.slice(0, max) : habits;
-  const overflow = max ? habits.length - max : 0;
+function palette(habit: string) {
+  let hash = 0;
+  for (let i = 0; i < habit.length; i++) hash = habit.charCodeAt(i) + ((hash << 5) - hash);
+  return PASTEL_PALETTE[Math.abs(hash) % PASTEL_PALETTE.length];
+}
+
+export default function HabitChips({ habits, max = 5 }: Props) {
+  const visible = habits.slice(0, max);
+  const overflow = habits.length - visible.length;
 
   return (
-    <div className="flex flex-wrap gap-1">
-      {visible.map((h) => {
-        const color = hashColor(h);
+    <div className="flex flex-wrap gap-1.5">
+      {visible.map(h => {
+        const { bg, color } = palette(h);
         return (
           <span
             key={h}
-            className="inline-flex items-center gap-1 text-[11px] font-semibold px-2.5 py-1 rounded-full leading-none tracking-tight"
-            style={{ background: color.bg, color: color.text }}
+            className="text-[11.5px] font-semibold"
+            style={{
+              background: bg,
+              color,
+              padding: '4px 10px',
+              borderRadius: 6,
+              letterSpacing: '-0.01em',
+            }}
           >
-            <span
-              className="w-1 h-1 rounded-full flex-shrink-0"
-              style={{ background: color.text, opacity: 0.5 }}
-            />
             {h}
           </span>
         );
       })}
       {overflow > 0 && (
         <span
-          className="inline-flex items-center text-[11px] font-semibold px-2.5 py-1 rounded-full leading-none"
-          style={{ background: 'rgba(0,0,0,0.05)', color: '#aaa' }}
+          className="text-[11.5px] font-semibold"
+          style={{
+            background: 'rgba(0,0,0,0.04)',
+            color: '#aaa',
+            padding: '4px 10px',
+            borderRadius: 6,
+          }}
         >
           +{overflow}
         </span>

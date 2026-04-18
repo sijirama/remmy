@@ -116,21 +116,23 @@ function Message({ msg }: { msg: DisplayMessage }) {
       )}
       <div
         className={`flex flex-col gap-1.5 ${isUser ? 'items-end' : 'items-start'}`}
-        style={{ maxWidth: '75%' }}
+        style={{ maxWidth: '85%' }}
       >
         <div
-          className="text-[14px] leading-[1.7] whitespace-pre-wrap"
+          className="text-[14.5px] leading-[1.65] whitespace-pre-wrap"
           style={isUser ? {
             background: '#111',
             color: '#fff',
-            borderRadius: '20px 20px 5px 20px',
-            padding: '12px 18px',
+            borderRadius: '20px 20px 6px 20px',
+            padding: '12px 20px',
+            boxShadow: '0 2px 8px rgba(0,0,0,0.04)',
           } : {
             background: '#fff',
             color: '#1a1a1a',
-            border: '1px solid rgba(0,0,0,0.07)',
-            borderRadius: '20px 20px 20px 5px',
-            padding: '12px 18px',
+            border: '1px solid rgba(0,0,0,0.04)',
+            borderRadius: '20px 20px 20px 6px',
+            padding: '12px 20px',
+            boxShadow: '0 2px 12px rgba(0,0,0,0.02)',
           }}
         >
           {msg.content}
@@ -262,9 +264,10 @@ export default function Chat() {
           className="flex-shrink-0 flex items-center justify-between px-5 sm:px-8"
           style={{
             height: 60,
-            background: 'rgba(248,247,245,0.95)',
+            background: 'rgba(248,247,245,0.85)',
             backdropFilter: 'blur(20px)',
-            borderBottom: '1px solid rgba(0,0,0,0.06)',
+            boxShadow: '0 1px 12px rgba(0,0,0,0.03)',
+            zIndex: 10,
           }}
         >
           {/* Back */}
@@ -375,18 +378,19 @@ export default function Chat() {
 
         {/* ── Input bar ── */}
         <div
-          className="flex-shrink-0 px-5 sm:px-8 pb-6 pt-3"
+          className="flex-shrink-0 px-5 sm:px-8 pb-6 pt-4 relative z-10"
           style={{
-            background: 'rgba(248,247,245,0.97)',
+            background: 'rgba(248,247,245,0.85)',
             backdropFilter: 'blur(20px)',
-            borderTop: '1px solid rgba(0,0,0,0.06)',
+            boxShadow: '0 -4px 20px rgba(0,0,0,0.02)',
           }}
         >
           <div
-            className="flex items-end gap-3 rounded-2xl px-4 py-3"
+            className="flex items-end gap-3 rounded-[20px] px-2 py-2"
             style={{
               background: '#fff',
-              border: '1.5px solid rgba(0,0,0,0.08)',
+              border: '1px solid rgba(0,0,0,0.06)',
+              boxShadow: '0 2px 12px rgba(0,0,0,0.03)',
               transition: 'border-color 0.15s, box-shadow 0.15s',
             }}
             onFocusCapture={e => {
@@ -396,8 +400,8 @@ export default function Chat() {
             }}
             onBlurCapture={e => {
               const el = e.currentTarget;
-              el.style.borderColor = 'rgba(0,0,0,0.08)';
-              el.style.boxShadow = 'none';
+              el.style.borderColor = 'rgba(0,0,0,0.06)';
+              el.style.boxShadow = '0 2px 12px rgba(0,0,0,0.03)';
             }}
           >
             <textarea
@@ -407,12 +411,14 @@ export default function Chat() {
               onKeyDown={onKeyDown}
               placeholder="ask anything…"
               rows={1}
-              className="flex-1 resize-none outline-none bg-transparent text-[14px] leading-[1.6]"
+              className="flex-1 resize-none outline-none bg-transparent text-[14.5px] leading-[1.6]"
               style={{
                 color: '#111',
                 maxHeight: 140,
-                minHeight: 24,
-                paddingTop: 2,
+                minHeight: 22,
+                paddingTop: 8,
+                paddingBottom: 8,
+                paddingLeft: 14,
               }}
               onInput={e => {
                 const t = e.currentTarget;
@@ -423,9 +429,9 @@ export default function Chat() {
             <button
               onClick={submit}
               disabled={!input.trim() || loading}
-              className="flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center transition-all active:scale-95"
+              className="flex-shrink-0 w-9 h-9 mb-1 mr-1 rounded-full flex items-center justify-center transition-all active:scale-95"
               style={{
-                background: input.trim() && !loading ? '#111' : 'rgba(0,0,0,0.08)',
+                background: input.trim() && !loading ? '#111' : 'rgba(0,0,0,0.06)',
                 transition: 'background 0.15s, opacity 0.15s',
               }}
             >
@@ -435,11 +441,11 @@ export default function Chat() {
                   style={{ borderTopColor: '#fff', borderRightColor: 'rgba(255,255,255,0.3)' }}
                 />
               ) : (
-                <ArrowUp size={14} color={input.trim() ? '#fff' : '#aaa'} strokeWidth={2.5} />
+                <ArrowUp size={15} color={input.trim() ? '#fff' : '#aaa'} strokeWidth={2.5} />
               )}
             </button>
           </div>
-          <p className="text-center text-[11px] mt-2.5" style={{ color: '#dfe6e9' }}>
+          <p className="text-center text-[12px] font-medium mt-3" style={{ color: '#b2bec3' }}>
             shift + enter for new line
           </p>
         </div>

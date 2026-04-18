@@ -6,8 +6,7 @@ import { toast } from 'sonner';
 import { useAuth } from '../contexts/AuthContext';
 import { fetchLogs, fetchLog, uploadAudioLog, uploadImageLog } from '../lib/logs';
 import type { Log } from '../lib/types';
-import AudioEntry from '../components/feed/AudioEntry';
-import ImageEntry from '../components/feed/ImageEntry';
+import FeedEntry from '../components/feed/FeedEntry';
 
 /* ── Helpers ── */
 
@@ -23,13 +22,14 @@ function isSameDay(a: Date, b: Date) {
   return toDateStr(a) === toDateStr(b);
 }
 
-function greeting() {
-  const h = new Date().getHours();
-  if (h < 5) return 'still up';
-  if (h < 12) return 'good morning';
-  if (h < 17) return 'good afternoon';
-  if (h < 21) return 'good evening';
-  return 'good night';
+function getRelativeDayLabel(d: Date) {
+  const today = new Date();
+  const yesterday = new Date(today);
+  yesterday.setDate(yesterday.getDate() - 1);
+
+  if (isSameDay(d, today)) return 'today';
+  if (isSameDay(d, yesterday)) return 'yesterday';
+  return d.toLocaleDateString('en-US', { weekday: 'long' }).toLowerCase();
 }
 
 function getWeekDays(reference: Date): Date[] {
@@ -45,7 +45,7 @@ function getWeekDays(reference: Date): Date[] {
   return week;
 }
 
-const DAY_LABELS = ['MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT', 'SUN'];
+const DAY_LABELS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 const MONTH_NAMES = [
   'January', 'February', 'March', 'April', 'May', 'June',
   'July', 'August', 'September', 'October', 'November', 'December',
@@ -79,15 +79,15 @@ function WeekStrip({ selected, onSelect }: { selected: Date; onSelect: (d: Date)
   };
 
   return (
-    <div className="flex items-center gap-1">
+    <div className="flex items-center">
       <button
         onClick={prevWeek}
-        className="w-7 h-7 flex items-center justify-center rounded-full transition-colors hover:bg-black/5 active:bg-black/10 flex-shrink-0"
+        className="w-8 h-8 flex items-center justify-center rounded-full transition-colors hover:bg-black/[0.03] active:bg-black/[0.06] flex-shrink-0"
       >
-        <ChevronLeft size={15} style={{ color: '#b2bec3' }} />
+        <ChevronLeft size={16} strokeWidth={2.5} style={{ color: '#ccc' }} />
       </button>
 
-      <div className="flex-1 flex justify-between">
+      <div className="flex-1 flex justify-between px-1">
         {week.map((d, i) => {
           const sel = isSameDay(d, selected);
           const tod = isSameDay(d, today);
@@ -98,23 +98,31 @@ function WeekStrip({ selected, onSelect }: { selected: Date; onSelect: (d: Date)
               key={i}
               onClick={() => handleSelect(d)}
               disabled={future}
-              className="flex flex-col items-center gap-[5px] py-1.5 px-2 rounded-[11px] transition-all"
+              className="flex flex-col items-center gap-2 transition-all active:scale-95"
               style={{
-                background: sel ? '#111' : 'transparent',
-                opacity: future ? 0.25 : 1,
+                opacity: future ? 0.3 : 1,
                 cursor: future ? 'default' : 'pointer',
-                minWidth: 36,
+                width: 44,
               }}
             >
               <span
-                className="text-[9.5px] font-bold tracking-widest"
-                style={{ color: sel ? 'rgba(255,255,255,0.5)' : '#c8d0d8' }}
+                className="text-[13.5px] tracking-tight"
+                style={{
+                  color: sel ? '#111' : '#888',
+                  fontWeight: sel ? 600 : 500,
+                }}
               >
                 {DAY_LABELS[i]}
               </span>
               <span
-                className="text-[15px] font-bold leading-none"
-                style={{ color: sel ? '#fff' : tod ? '#6C5CE7' : '#111' }}
+                className="text-[15.5px] flex items-center justify-center rounded-[14px]"
+                style={{
+                  color: sel ? '#6C5CE7' : tod ? '#6C5CE7' : '#888',
+                  fontWeight: sel ? 700 : 600,
+                  background: sel ? '#F0EDFF' : 'transparent',
+                  width: 38,
+                  height: 38,
+                }}
               >
                 {d.getDate()}
               </span>
@@ -125,9 +133,9 @@ function WeekStrip({ selected, onSelect }: { selected: Date; onSelect: (d: Date)
 
       <button
         onClick={nextWeek}
-        className="w-7 h-7 flex items-center justify-center rounded-full transition-colors hover:bg-black/5 active:bg-black/10 flex-shrink-0"
+        className="w-8 h-8 flex items-center justify-center rounded-full transition-colors hover:bg-black/[0.03] active:bg-black/[0.06] flex-shrink-0"
       >
-        <ChevronRight size={15} style={{ color: '#b2bec3' }} />
+        <ChevronRight size={16} strokeWidth={2.5} style={{ color: '#ccc' }} />
       </button>
     </div>
   );
@@ -135,15 +143,31 @@ function WeekStrip({ selected, onSelect }: { selected: Date; onSelect: (d: Date)
 
 /* ── Skeleton row ── */
 
-function SkeletonRow() {
+function SkeletonRow({ isLast = false }: { isLast?: boolean }) {
   return (
-    <div className="flex items-start gap-3.5 py-3.5 px-4 border-b border-black/[0.05] last:border-0 animate-pulse">
-      <div className="w-[38px] h-[38px] rounded-[11px] flex-shrink-0" style={{ background: 'rgba(0,0,0,0.05)' }} />
-      <div className="flex-1 flex flex-col gap-2 pt-1">
-        <div className="h-[13px] w-28 rounded-full" style={{ background: 'rgba(0,0,0,0.06)' }} />
-        <div className="h-[11px] w-44 rounded-full" style={{ background: 'rgba(0,0,0,0.04)' }} />
+    <div className="relative flex items-start pb-8 animate-pulse">
+      {/* Time */}
+      <div className="w-[42px] flex-shrink-0 pt-[3px] flex justify-end">
+        <div className="w-8 h-[12px] rounded-full bg-black/5" />
       </div>
-      <div className="h-[11px] w-8 rounded-full mt-1.5" style={{ background: 'rgba(0,0,0,0.04)' }} />
+
+      {/* Spine */}
+      <div className="relative flex flex-col items-center" style={{ width: 12, marginLeft: 8, marginRight: 8 }}>
+        <div className="w-[9px] h-[9px] bg-black/[0.1] rounded-full mt-[5px] relative z-10" />
+        {!isLast && (
+          <div
+            className="absolute w-px"
+            style={{ top: 22, bottom: -32, background: 'rgba(0,0,0,0.03)' }}
+          />
+        )}
+      </div>
+
+      {/* Content */}
+      <div className="flex-1 flex flex-col gap-2.5 pt-1 ml-1">
+        <div className="h-[14px] w-48 rounded-full bg-black/5" />
+        <div className="h-[14px] w-3/4 rounded-full bg-black/5" />
+        <div className="h-[14px] w-1/2 rounded-full bg-black/5" />
+      </div>
     </div>
   );
 }
@@ -346,33 +370,22 @@ export default function Dashboard() {
             </div>
           </motion.div>
 
-          {/* ── Greeting ── */}
+          {/* ── Header ── */}
           <motion.div
             initial={{ opacity: 0, y: 8 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.3, delay: 0.06 }}
-            className="flex items-end justify-between"
+            className="flex items-center justify-between mb-1"
           >
-            <div>
-              <p
-                className="text-[13px] font-medium mb-0.5"
-                style={{ color: '#b2bec3' }}
-              >
-                {greeting()},
-              </p>
-              <h1
-                className="text-[1.75rem] font-extrabold leading-none"
-                style={{ letterSpacing: '-0.035em', color: '#111' }}
-              >
-                {user?.firstName}
-              </h1>
-            </div>
-            <div className="text-right pb-0.5">
-              <p className="text-[14px] font-semibold" style={{ color: '#111', letterSpacing: '-0.02em' }}>
+            <h1
+              className="text-[2.25rem] font-extrabold leading-none tracking-tight"
+              style={{ letterSpacing: '-0.04em', color: '#111' }}
+            >
+              {getRelativeDayLabel(date)}
+            </h1>
+            <div className="text-right">
+              <p className="text-[14.5px] font-semibold" style={{ color: '#888', letterSpacing: '-0.01em' }}>
                 {MONTH_NAMES[date.getMonth()]} {date.getDate()}
-              </p>
-              <p className="text-[12px]" style={{ color: '#c8d0d8' }}>
-                {date.getFullYear()}
               </p>
             </div>
           </motion.div>
@@ -382,12 +395,7 @@ export default function Dashboard() {
             initial={{ opacity: 0, y: 8 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.3, delay: 0.1 }}
-            className="py-2.5 px-2.5 rounded-2xl"
-            style={{
-              background: 'var(--bg-card)',
-              border: '1px solid var(--border)',
-              boxShadow: 'var(--shadow-sm)',
-            }}
+            className="py-1"
           >
             <WeekStrip selected={date} onSelect={setDate} />
           </motion.div>
@@ -468,50 +476,36 @@ export default function Dashboard() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ duration: 0.3, delay: 0.18 }}
-            className="-mx-4 rounded-2xl overflow-hidden"
-            style={{
-              background: 'var(--bg-card)',
-              border: '1px solid var(--border)',
-              boxShadow: 'var(--shadow-sm)',
-            }}
+            className="flex flex-col gap-12 mb-6 mt-4"
           >
             {loading ? (
               <>
                 <SkeletonRow />
                 <SkeletonRow />
-                <SkeletonRow />
+                <SkeletonRow isLast />
               </>
             ) : logs.length === 0 ? (
-              <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                className="flex flex-col items-center justify-center py-16 gap-1.5"
-              >
+              <div className="text-center py-10">
                 <p className="text-[13px] font-medium" style={{ color: '#c8d0d8' }}>
                   nothing here {isToday(date) ? 'yet' : 'that day'}
                 </p>
-                {isToday(date) && (
-                  <p className="text-[12px]" style={{ color: '#dfe6e9' }}>
-                    use the mic or camera to start logging
-                  </p>
-                )}
-              </motion.div>
+              </div>
             ) : (
               <AnimatePresence initial={false}>
-                {logs.map(log => (
-                  <motion.div
-                    key={log.id}
-                    initial={{ opacity: 0, y: 5 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, scale: 0.98 }}
-                    transition={{ duration: 0.16 }}
-                  >
-                    {log.type === 'audio'
-                      ? <AudioEntry log={log} />
-                      : <ImageEntry log={log} />
-                    }
-                  </motion.div>
-                ))}
+                {logs.map((log, i) => {
+                  const isLast = i === logs.length - 1;
+                  return (
+                    <motion.div
+                      key={log.id}
+                      initial={{ opacity: 0, y: 5 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, scale: 0.98 }}
+                      transition={{ duration: 0.16 }}
+                    >
+                      <FeedEntry log={log} isLast={isLast} />
+                    </motion.div>
+                  );
+                })}
               </AnimatePresence>
             )}
 
