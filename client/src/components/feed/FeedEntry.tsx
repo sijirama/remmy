@@ -95,7 +95,7 @@ export default function FeedEntry({ log, isLast = false }: Props) {
                   <img
                     src={log.raw_file_url}
                     alt=""
-                    className="rounded-[4px] object-cover border shadow-sm max-h-[200px] sm:max-h-[300px]"
+                    className="rounded-[4px] object-cover border shadow-sm max-h-[140px] sm:max-h-[300px] max-w-[85%] sm:max-w-full"
                     style={{
                       width: '100%',
                       borderColor: 'rgba(0,0,0,0.06)',

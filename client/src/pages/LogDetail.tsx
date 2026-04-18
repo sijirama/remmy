@@ -64,12 +64,12 @@ export default function LogDetail() {
   const isAudio = log.type === 'audio';
 
   return (
-    <div className="min-h-screen flex flex-col items-center" style={{ background: 'var(--bg)' }}>
+    <div className="min-h-screen flex flex-col items-center overflow-x-hidden" style={{ background: 'var(--bg)' }}>
       <div className="w-full max-w-xl flex flex-col" style={{ minHeight: '100dvh' }}>
 
         {/* ── Navbar — matches Chat ── */}
         <div
-          className="flex-shrink-0 flex items-center justify-between px-5 sm:px-8"
+          className="flex-shrink-0 flex items-center justify-between px-6 sm:px-8"
           style={{
             height: 56,
             background: 'rgba(250,250,250,0.8)',
@@ -104,7 +104,7 @@ export default function LogDetail() {
           initial={{ opacity: 0, y: 8 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.22 }}
-          className="px-5 sm:px-8 mx-5 sm:mx-0 flex flex-col gap-5"
+          className="px-6 sm:px-8 mx-2 sm:mx-0 flex flex-col gap-5"
           style={{ marginTop: 40, marginBottom: 80, paddingBottom: 40 }}
         >
           {title && (

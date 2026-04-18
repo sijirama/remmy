@@ -273,7 +273,7 @@ export default function Chat() {
 
   return (
     <div
-      className="relative flex flex-col items-center overflow-hidden"
+      className="relative flex flex-col items-center overflow-x-hidden overflow-y-hidden"
       style={{ height: '100dvh', background: 'var(--bg, #fafafa)' }}
     >
       {/* Blurred gradient blobs — decorative */}
@@ -310,7 +310,7 @@ export default function Chat() {
 
         {/* ── Navbar ── */}
         <div
-          className="flex-shrink-0 flex items-center justify-between px-5 sm:px-8"
+          className="flex-shrink-0 flex items-center justify-between px-4 sm:px-8"
           style={{
             height: 56,
             background: 'rgba(250,250,250,0.92)',
@@ -347,7 +347,7 @@ export default function Chat() {
           className="flex-1 overflow-y-auto hide-scrollbar"
           style={{ overscrollBehavior: 'contain' }}
         >
-          <div className="flex flex-col gap-4 px-5 sm:px-8 pt-8 pb-12">
+          <div className="flex flex-col gap-4 px-4 sm:px-8 pt-5 sm:pt-8 pb-12">
 
             {hasOlder && (
               <div ref={sentinelRef} className="flex justify-center pb-2">
@@ -424,7 +424,7 @@ export default function Chat() {
 
         {/* ── Input bar ── */}
         <div
-          className="flex-shrink-0 px-5 sm:px-8 pt-3"
+          className="flex-shrink-0 px-4 sm:px-8 pt-3"
           style={{
             position: 'relative',
             zIndex: 20,
@@ -440,7 +440,7 @@ export default function Chat() {
               onKeyDown={onKeyDown}
               placeholder="ask anything…"
               rows={1}
-              className="w-full resize-none outline-none bg-transparent text-[12px] sm:text-[13.5px] leading-[1.55] placeholder:text-[#b8b8c0] hide-scrollbar block"
+              className="w-full resize-none outline-none bg-transparent text-[16px] sm:text-[13.5px] leading-[1.55] placeholder:text-[#b8b8c0] hide-scrollbar block"
               style={{
                 color: '#111',
                 maxHeight: 160,

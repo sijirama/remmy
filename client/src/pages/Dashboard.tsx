@@ -357,7 +357,7 @@ export default function Dashboard() {
   const allHabits = [...new Set(logs.flatMap(l => l.habit_matches ?? []))];
 
   return (
-    <div className="min-h-screen" style={{ background: 'var(--bg)' }}>
+    <div className="min-h-screen overflow-x-hidden" style={{ background: 'var(--bg)' }}>
       <input
         ref={imageInputRef}
         type="file"
@@ -370,12 +370,12 @@ export default function Dashboard() {
         }}
       />
 
-      <div className="flex flex-col items-center min-h-screen px-5 sm:px-8 pb-16 pt-4 sm:pt-6">
+      <div className="flex flex-col items-center min-h-screen px-4 sm:px-8 pb-16 pt-4 sm:pt-6">
         <div className="w-full max-w-xl flex flex-col gap-6">
 
           {/* ── Top bar ── */}
           <motion.div
-            className="flex items-center justify-between"
+            className="flex items-center justify-between px-1"
             initial={{ opacity: 0, y: -8 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.3 }}
@@ -457,7 +457,7 @@ export default function Dashboard() {
             initial={{ opacity: 0, y: 8 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.3, delay: 0.06 }}
-            className="flex items-center justify-between mb-1"
+            className="flex items-center justify-between mb-1 px-1"
           >
             <h1
               className="text-[1.75rem] sm:text-[2.25rem] font-extrabold leading-none tracking-tight"
@@ -477,14 +477,14 @@ export default function Dashboard() {
             initial={{ opacity: 0, y: 8 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.3, delay: 0.1 }}
-            className="py-1"
+            className="py-1 px-1"
           >
             <WeekStrip selected={date} onSelect={setDate} />
           </motion.div>
 
           {/* ── Habits + Capture ── */}
           <motion.div
-            className="flex items-center justify-between gap-3"
+            className="flex items-center justify-between gap-3 px-1"
             initial={{ opacity: 0, y: 8 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.3, delay: 0.14 }}
@@ -515,8 +515,8 @@ export default function Dashboard() {
               )}
             </div>
 
-            {/* Capture buttons */}
-            <div className="flex items-center gap-2 flex-shrink-0">
+            {/* Capture buttons — hidden on mobile, FAB handles it */}
+            <div className="hidden sm:flex items-center gap-2 flex-shrink-0">
               <button
                 onClick={handleMicClick}
                 disabled={recordingState === 'uploading'}
