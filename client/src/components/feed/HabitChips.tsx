@@ -1,6 +1,5 @@
 interface Props {
   habits: string[];
-  max?: number;
 }
 
 const PASTEL_PALETTE = [
@@ -19,7 +18,7 @@ export function palette(habit: string) {
   return PASTEL_PALETTE[Math.abs(hash) % PASTEL_PALETTE.length];
 }
 
-export default function HabitChips({ habits, max = 5 }: Props) {
+export default function HabitChips({ habits }: Props) {
   return (
     <div 
       className="flex flex-nowrap items-center gap-1.5 overflow-x-auto hide-scrollbar"

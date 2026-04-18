@@ -122,7 +122,7 @@ export default function FeedEntry({ log, isLast = false }: Props) {
 
             {log.habit_matches?.length > 0 && (
               <div className="mt-0.5">
-                <HabitChips habits={log.habit_matches} max={3} />
+                <HabitChips habits={log.habit_matches} />
               </div>
             )}
           </>
