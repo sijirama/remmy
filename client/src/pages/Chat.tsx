@@ -31,7 +31,7 @@ interface DisplayMessage extends ChatMessage {
 
 function SearchTable({ contexts }: { contexts: SearchContext[] }) {
   const [open, setOpen] = useState(false);
-  const total = contexts.reduce((s, c) => s + c.results.length, 0);
+  const total = contexts.reduce((s, c) => s + (c.results?.length ?? 0), 0);
   if (total === 0) return null;
   return (
     <div className="mt-2">
@@ -57,7 +57,7 @@ function SearchTable({ contexts }: { contexts: SearchContext[] }) {
             </thead>
             <tbody>
               {contexts.flatMap((ctx, ci) =>
-                ctx.results.map((r, ri) => (
+                (ctx.results ?? []).map((r, ri) => (
                   <tr
                     key={`${ci}-${ri}`}
                     style={{ borderTop: '1px solid rgba(139,92,246,0.08)' }}

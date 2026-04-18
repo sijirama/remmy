@@ -1,4 +1,11 @@
-[GIN] 2026/04/18 - 00:49:06 | 500 |    1.18s |             ::1 | POST     "/api/v1/chat"
-[GIN] 2026/04/18 - 00:49:18 | 500 | 440.23ms |             ::1 | POST     "/api/v1/chat"
-[GIN] 2026/04/18 - 00:49:33 | 500 | 449.11ms |             ::1 | POST     "/api/v1/chat"
+
+Chat.tsx:114 TypeError: Cannot read properties of null (reading 'length')
+    at Chat.tsx:34:57
+    at Array.reduce (<anonymous>)
+    at SearchTable (Chat.tsx:34:26)
+
+
+The above error occurred in the <SearchTable> component.
+
+React will try to recreate this component tree from scratch using the error boundary you provided, ErrorBoundary.
 
