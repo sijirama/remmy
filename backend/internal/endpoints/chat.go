@@ -152,7 +152,7 @@ func Chat(c *gin.Context) {
 		return
 	}
 
-	finalText, err := runToolLoop(c.Request.Context(), cs, resp, userID)
+	finalText, searchCtx, err := runToolLoop(c.Request.Context(), cs, resp, userID)
 	if err != nil {
 		log.Printf("[Chat] Tool loop error for user %d: %v", userID, err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "AI processing failed", "code": "ai_error"})
@@ -163,18 +163,25 @@ func Chat(c *gin.Context) {
 	database.DB.Create(&models.ChatMessage{UserID: userID, Role: "user", Content: req.Message})
 	database.DB.Create(&models.ChatMessage{UserID: userID, Role: "model", Content: finalText})
 
-	c.JSON(http.StatusOK, gin.H{"response": finalText})
+	c.JSON(http.StatusOK, gin.H{"response": finalText, "search_context": searchCtx})
 }
 
-func runToolLoop(ctx context.Context, cs *genai.ChatSession, resp *genai.GenerateContentResponse, userID uint) (string, error) {
+type SearchContext struct {
+	Query   string                `json:"query"`
+	Results []search.LogSearchResult `json:"results"`
+}
+
+func runToolLoop(ctx context.Context, cs *genai.ChatSession, resp *genai.GenerateContentResponse, userID uint) (string, []SearchContext, error) {
+	var searchContexts []SearchContext
+
 	for {
 		if len(resp.Candidates) == 0 {
-			return "", fmt.Errorf("empty response")
+			return "", nil, fmt.Errorf("empty response")
 		}
 
 		candidate := resp.Candidates[0]
 		if candidate.Content == nil {
-			return "", fmt.Errorf("nil content in response")
+			return "", nil, fmt.Errorf("nil content in response")
 		}
 
 		var funcCall *genai.FunctionCall
@@ -191,15 +198,22 @@ func runToolLoop(ctx context.Context, cs *genai.ChatSession, resp *genai.Generat
 
 		if funcCall == nil {
 			if len(textParts) > 0 {
-				return strings.Join(textParts, ""), nil
+				return strings.Join(textParts, ""), searchContexts, nil
 			}
-			return "", fmt.Errorf("no text in response")
+			return "", nil, fmt.Errorf("no text in response")
 		}
 
-		toolResult, err := executeLogSearch(ctx, userID, funcCall.Args)
+		query := ""
+		if q, ok := funcCall.Args["query"].(string); ok {
+			query = q
+		}
+
+		results, toolResult, err := executeLogSearch(ctx, userID, funcCall.Args)
 		if err != nil {
 			log.Printf("[Chat] log_search failed: %v", err)
 			toolResult = map[string]interface{}{"error": err.Error(), "results": []interface{}{}}
+		} else {
+			searchContexts = append(searchContexts, SearchContext{Query: query, Results: results})
 		}
 
 		var sendErr error
@@ -208,7 +222,7 @@ func runToolLoop(ctx context.Context, cs *genai.ChatSession, resp *genai.Generat
 				wait := time.Duration(1<<uint(attempt)) * time.Second
 				select {
 				case <-ctx.Done():
-					return "", ctx.Err()
+					return "", nil, ctx.Err()
 				case <-time.After(wait):
 				}
 			}
@@ -225,12 +239,12 @@ func runToolLoop(ctx context.Context, cs *genai.ChatSession, resp *genai.Generat
 			log.Printf("[Chat] 429 on SendMessage attempt %d, retrying", attempt+1)
 		}
 		if sendErr != nil {
-			return "", fmt.Errorf("send tool response: %w", sendErr)
+			return "", nil, fmt.Errorf("send tool response: %w", sendErr)
 		}
 	}
 }
 
-func executeLogSearch(ctx context.Context, userID uint, args map[string]interface{}) (map[string]interface{}, error) {
+func executeLogSearch(ctx context.Context, userID uint, args map[string]interface{}) ([]search.LogSearchResult, map[string]interface{}, error) {
 	params := search.LogSearchParams{}
 
 	if q, ok := args["query"].(string); ok {
@@ -248,18 +262,18 @@ func executeLogSearch(ctx context.Context, userID uint, args map[string]interfac
 
 	results, err := search.SearchLogs(ctx, userID, params)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	serialized, err := json.Marshal(results)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	var asMap []interface{}
 	json.Unmarshal(serialized, &asMap)
 
-	return map[string]interface{}{
+	return results, map[string]interface{}{
 		"results": asMap,
 		"count":   len(results),
 	}, nil

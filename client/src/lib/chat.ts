@@ -6,9 +6,26 @@ export interface ChatMessage {
   content: string;
 }
 
+export interface SearchResult {
+  chunk_text: string;
+  type: string;
+  logged_at: string;
+  similarity: number;
+}
+
+export interface SearchContext {
+  query: string;
+  results: SearchResult[];
+}
+
 export interface ChatHistoryPage {
   messages: ChatMessage[];
   hasMore: boolean;
+}
+
+export interface SendMessageResponse {
+  response: string;
+  search_context?: SearchContext[];
 }
 
 export async function getChatHistory(beforeId?: number): Promise<ChatHistoryPage> {
@@ -21,7 +38,10 @@ export async function getChatHistory(beforeId?: number): Promise<ChatHistoryPage
   };
 }
 
-export async function sendMessage(message: string, history: ChatMessage[]): Promise<string> {
+export async function sendMessage(message: string, history: ChatMessage[]): Promise<SendMessageResponse> {
   const res = await api.post('v1/chat', { message, history });
-  return res.data.response;
+  return {
+    response: res.data.response,
+    search_context: res.data.search_context ?? undefined,
+  };
 }

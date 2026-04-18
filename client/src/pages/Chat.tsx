@@ -1,10 +1,10 @@
-import { useState, useRef, useEffect, useLayoutEffect } from 'react';
+import { useState, useRef, useEffect, useLayoutEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { ChevronLeft, Send } from 'lucide-react';
 import { toast } from 'sonner';
 import { sendMessage, getChatHistory } from '../lib/chat';
-import type { ChatMessage } from '../lib/chat';
+import type { ChatMessage, SearchContext } from '../lib/chat';
 
 function TypingIndicator() {
   return (
@@ -25,7 +25,64 @@ function TypingIndicator() {
   );
 }
 
-function Message({ msg }: { msg: ChatMessage }) {
+interface DisplayMessage extends ChatMessage {
+  searchContext?: SearchContext[];
+}
+
+function SearchTable({ contexts }: { contexts: SearchContext[] }) {
+  const [open, setOpen] = useState(false);
+  const total = contexts.reduce((s, c) => s + c.results.length, 0);
+  if (total === 0) return null;
+  return (
+    <div className="mt-2">
+      <button
+        onClick={() => setOpen(o => !o)}
+        className="text-xs flex items-center gap-1 transition-opacity hover:opacity-70"
+        style={{ color: '#a78bfa' }}
+      >
+        <span>{open ? '▾' : '▸'}</span>
+        {contexts.length === 1
+          ? `searched "${contexts[0].query}" · ${total} result${total !== 1 ? 's' : ''}`
+          : `${contexts.length} searches · ${total} results`}
+      </button>
+      {open && (
+        <div className="mt-2 rounded-xl overflow-hidden" style={{ border: '1px solid rgba(139,92,246,0.12)' }}>
+          <table className="w-full text-xs" style={{ borderCollapse: 'collapse' }}>
+            <thead>
+              <tr style={{ background: 'rgba(139,92,246,0.06)' }}>
+                <th className="text-left px-3 py-2 font-medium" style={{ color: '#8b5cf6' }}>query</th>
+                <th className="text-left px-3 py-2 font-medium" style={{ color: '#8b5cf6' }}>chunk</th>
+                <th className="text-right px-3 py-2 font-medium" style={{ color: '#8b5cf6' }}>score</th>
+              </tr>
+            </thead>
+            <tbody>
+              {contexts.flatMap((ctx, ci) =>
+                ctx.results.map((r, ri) => (
+                  <tr
+                    key={`${ci}-${ri}`}
+                    style={{ borderTop: '1px solid rgba(139,92,246,0.08)' }}
+                  >
+                    <td className="px-3 py-2 align-top" style={{ color: '#7c3aed', whiteSpace: 'nowrap' }}>
+                      {ri === 0 ? `"${ctx.query}"` : ''}
+                    </td>
+                    <td className="px-3 py-2" style={{ color: '#6b7280', maxWidth: 220 }}>
+                      <span className="line-clamp-2">{r.chunk_text}</span>
+                    </td>
+                    <td className="px-3 py-2 text-right font-mono align-top" style={{ color: '#059669', whiteSpace: 'nowrap' }}>
+                      {(r.similarity * 100).toFixed(1)}%
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function Message({ msg }: { msg: DisplayMessage }) {
   const isUser = msg.role === 'user';
   return (
     <motion.div
@@ -37,20 +94,25 @@ function Message({ msg }: { msg: ChatMessage }) {
       {!isUser && (
         <div className="w-7 h-7 rounded-full flex-shrink-0 flex items-center justify-center text-xs font-bold" style={{ background: 'rgba(139,92,246,0.12)', color: '#8b5cf6' }}>r</div>
       )}
-      <div
-        className="max-w-[75%] px-4 py-3 rounded-2xl text-sm leading-relaxed whitespace-pre-wrap"
-        style={isUser ? {
-          background: '#8b5cf6',
-          color: '#fff',
-          borderRadius: '18px 18px 4px 18px',
-        } : {
-          background: '#fff',
-          color: '#1a1a1a',
-          border: '1px solid rgba(139,92,246,0.1)',
-          borderRadius: '18px 18px 18px 4px',
-        }}
-      >
-        {msg.content}
+      <div className={`flex flex-col ${isUser ? 'items-end' : 'items-start'}`} style={{ maxWidth: '75%' }}>
+        <div
+          className="px-4 py-3 rounded-2xl text-sm leading-relaxed whitespace-pre-wrap w-full"
+          style={isUser ? {
+            background: '#8b5cf6',
+            color: '#fff',
+            borderRadius: '18px 18px 4px 18px',
+          } : {
+            background: '#fff',
+            color: '#1a1a1a',
+            border: '1px solid rgba(139,92,246,0.1)',
+            borderRadius: '18px 18px 18px 4px',
+          }}
+        >
+          {msg.content}
+        </div>
+        {!isUser && msg.searchContext && msg.searchContext.length > 0 && (
+          <SearchTable contexts={msg.searchContext} />
+        )}
       </div>
     </motion.div>
   );
@@ -58,7 +120,7 @@ function Message({ msg }: { msg: ChatMessage }) {
 
 export default function Chat() {
   const navigate = useNavigate();
-  const [history, setHistory] = useState<ChatMessage[]>([]);
+  const [history, setHistory] = useState<DisplayMessage[]>([]);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
   const [historyLoading, setHistoryLoading] = useState(true);
@@ -133,20 +195,24 @@ export default function Chat() {
     }
   };
 
-  const submit = async () => {
+  const submit = useCallback(async () => {
     const text = input.trim();
     if (!text || loading) return;
 
-    const userMsg: ChatMessage = { role: 'user', content: text };
+    const userMsg: DisplayMessage = { role: 'user', content: text };
     setHistory(prev => [...prev, userMsg]);
     setInput('');
     setLoading(true);
 
     try {
       // Send only last 40 messages as context to avoid bloating the request
-      const context = history.slice(-40);
-      const response = await sendMessage(text, context);
-      setHistory(prev => [...prev, { role: 'model', content: response }]);
+      const context = history.slice(-40).map(({ role, content }) => ({ role, content }));
+      const res = await sendMessage(text, context);
+      setHistory(prev => [...prev, {
+        role: 'model',
+        content: res.response,
+        searchContext: res.search_context,
+      }]);
     } catch {
       toast.error('something went wrong');
       setHistory(prev => prev.slice(0, -1));
@@ -154,7 +220,7 @@ export default function Chat() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [input, loading, history]);
 
   const onKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && !e.shiftKey) {
