@@ -310,7 +310,7 @@ export default function Chat() {
 
         {/* ── Navbar ── */}
         <div
-          className="flex-shrink-0 flex items-center justify-between sm:px-8"
+          className="flex-shrink-0 flex items-center justify-between sm:px-8 mt-8 sm:mt-0"
           style={{
             height: 56,
             background: 'rgba(250,250,250,0.92)',

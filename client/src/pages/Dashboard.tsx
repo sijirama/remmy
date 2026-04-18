@@ -370,12 +370,15 @@ export default function Dashboard() {
         }}
       />
 
-      <div className="flex flex-col items-center min-h-screen px-0 sm:px-8 pb-16 pt-6 sm:pt-6">
+      <div className="flex flex-col items-center min-h-screen px-0 sm:px-8 pb-16 pt-2 sm:pt-6">
         <div className="w-[88%] sm:w-full max-w-xl mx-auto flex flex-col gap-6">
+
+          {/* Bulletproof spacer so the navbar is never touching the top edge */}
+          <div className="block md:hidden h-0 w-full flex-shrink-0" />
 
           {/* ── Top bar ── */}
           <motion.div
-            className="flex items-center justify-between mt-4 sm:mt-0 pt-2 sm:pt-0"
+            className="flex items-center justify-between pt-2 sm:pt-0"
             initial={{ opacity: 0, y: -8 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.3 }}

@@ -69,7 +69,7 @@ export default function LogDetail() {
 
         {/* ── Navbar — matches Chat ── */}
         <div
-          className="flex-shrink-0 flex items-center justify-between sm:px-8 py-1"
+          className="flex-shrink-0 flex items-center justify-between sm:px-8 py-1 mt-6 sm:mt-0"
           style={{
             height: 56,
             background: 'rgba(250,250,250,0.8)',
