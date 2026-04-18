@@ -371,20 +371,20 @@ export default function Dashboard() {
       />
 
       <div className="flex flex-col items-center min-h-screen px-0 sm:px-8 pb-16 pt-2 sm:pt-6">
-        <div className="w-[88%] sm:w-full max-w-xl mx-auto flex flex-col gap-6">
+        <div className="w-[93%] sm:w-full max-w-xl mx-auto flex flex-col gap-6">
 
           {/* Bulletproof spacer so the navbar is never touching the top edge */}
           <div className="block md:hidden h-0 w-full flex-shrink-0" />
 
           {/* ── Top bar ── */}
           <motion.div
-            className="flex items-center justify-between pt-2 sm:pt-0"
+            className="flex items-center justify-end sm:justify-between pt-2 sm:pt-0"
             initial={{ opacity: 0, y: -8 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.3 }}
           >
             <span
-              className="text-[18px] font-extrabold tracking-[-0.04em]"
+              className="hidden sm:inline text-[18px] font-extrabold tracking-[-0.04em]"
               style={{ color: '#111' }}
             >
               remmy
@@ -460,7 +460,7 @@ export default function Dashboard() {
             initial={{ opacity: 0, y: 8 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.3, delay: 0.06 }}
-            className="flex items-center justify-between mb-1"
+            className="flex items-center mb-1"
           >
             <h1
               className="text-[1.75rem] sm:text-[2.25rem] font-extrabold leading-none tracking-tight"
@@ -468,11 +468,6 @@ export default function Dashboard() {
             >
               {getRelativeDayLabel(date)}
             </h1>
-            <div className="text-right">
-              <p className="text-[14.5px] font-semibold" style={{ color: '#888', letterSpacing: '-0.01em' }}>
-                {MONTH_NAMES[date.getMonth()]} {date.getDate()}
-              </p>
-            </div>
           </motion.div>
 
           {/* ── Week strip ── */}
