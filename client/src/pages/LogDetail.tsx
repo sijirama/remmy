@@ -107,21 +107,6 @@ export default function LogDetail() {
           className="px-0 sm:px-8 flex flex-col gap-5"
           style={{ marginTop: 40, marginBottom: 80, paddingBottom: 40 }}
         >
-          {title && (
-            <h1
-              style={{
-                fontFamily: 'ui-serif, Georgia, "Times New Roman", serif',
-                fontSize: 'clamp(1rem, 2.8vw, 1.3rem)',
-                fontWeight: 600,
-                lineHeight: 1.25,
-                letterSpacing: '-0.02em',
-                color: '#111',
-              }}
-            >
-              {title}
-            </h1>
-          )}
-
           {/* Media at top */}
           {isAudio && log.raw_file_url && (
             <AudioPlayer src={log.raw_file_url} size="lg" />
@@ -140,6 +125,21 @@ export default function LogDetail() {
                 className="w-full object-cover block max-h-[280px] sm:max-h-[420px]"
               />
             </div>
+          )}
+
+          {title && (
+            <h1
+              style={{
+                fontFamily: 'Inter, sans-serif',
+                fontSize: 'clamp(1rem, 2.8vw, 1.3rem)',
+                fontWeight: 600,
+                lineHeight: 1.25,
+                letterSpacing: '-0.02em',
+                color: '#111',
+              }}
+            >
+              {title}
+            </h1>
           )}
 
           {/* Small date + metadata — below media */}

@@ -273,8 +273,8 @@ export default function Chat() {
 
   return (
     <div
-      className="relative flex flex-col items-center overflow-x-hidden overflow-y-hidden"
-      style={{ height: '100dvh', background: 'var(--bg, #fafafa)' }}
+      className="fixed inset-0 flex flex-col items-center overflow-hidden"
+      style={{ background: 'var(--bg, #fafafa)' }}
     >
       {/* Blurred gradient blobs — decorative */}
       <div
@@ -306,11 +306,14 @@ export default function Chat() {
         }}
       />
 
-      <div className="relative w-[88%] sm:w-full max-w-xl mx-auto flex flex-col" style={{ height: '100dvh' }}>
+      <div className="relative w-[88%] sm:w-full max-w-xl mx-auto flex flex-col h-full">
+        
+        {/* Bulletproof spacer to move it down securely */}
+        <div className="block sm:hidden h-6 w-full flex-shrink-0" />
 
         {/* ── Navbar ── */}
         <div
-          className="flex-shrink-0 flex items-center justify-between sm:px-8 mt-8 sm:mt-0"
+          className="flex-shrink-0 flex items-center justify-between sm:px-8"
           style={{
             height: 56,
             background: 'rgba(250,250,250,0.92)',
