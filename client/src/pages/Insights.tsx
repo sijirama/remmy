@@ -1,7 +1,7 @@
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { motion, AnimatePresence } from 'framer-motion';
-import { ChevronLeft, BarChart3, Info } from 'lucide-react';
+import { motion } from 'framer-motion';
+import { ChevronLeft, Info } from 'lucide-react';
 import { getHeatmapData, type HeatmapDay } from '../lib/metrics';
 
 const Insights = () => {
