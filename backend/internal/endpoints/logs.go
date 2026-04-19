@@ -2,6 +2,7 @@ package endpoints
 
 import (
 	"fmt"
+	"log"
 	"net/http"
 	"strconv"
 	"time"
@@ -182,4 +183,81 @@ func GetLogByID(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, entry)
+}
+
+func ReprocessLog(c *gin.Context) {
+	userID := c.MustGet("userID").(uint)
+	logID := c.Param("id")
+
+	var entry models.Log
+	if err := database.DB.Where("id = ? AND user_id = ?", logID, userID).First(&entry).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "log not found", "code": "not_found"})
+		return
+	}
+
+	if entry.RawFileURL == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "log has no source file", "code": "missing_file"})
+		return
+	}
+
+	if err := database.DB.Where("log_id = ?", entry.ID).Delete(&models.LogChunk{}).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to clear chunks", "code": "db_error"})
+		return
+	}
+
+	updates := map[string]interface{}{
+		"status":            "processing",
+		"raw_transcript":    "",
+		"raw_description":   "",
+		"rewritten_content": "",
+		"title":             "",
+		"habit_matches":     []string{},
+	}
+	if err := database.DB.Model(&entry).Updates(updates).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to reset log", "code": "db_error"})
+		return
+	}
+
+	processing.Enqueue(processing.ProcessingJob{
+		LogID:   entry.ID,
+		LogType: entry.Type,
+		FileURL: entry.RawFileURL,
+		UserID:  userID,
+	})
+
+	c.JSON(http.StatusAccepted, gin.H{
+		"id":     entry.ID,
+		"status": "processing",
+	})
+}
+
+func DeleteLog(c *gin.Context) {
+	userID := c.MustGet("userID").(uint)
+	logID := c.Param("id")
+
+	var entry models.Log
+	if err := database.DB.Where("id = ? AND user_id = ?", logID, userID).First(&entry).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "log not found", "code": "not_found"})
+		return
+	}
+
+	if err := database.DB.Where("log_id = ?", entry.ID).Delete(&models.LogChunk{}).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to delete chunks", "code": "db_error"})
+		return
+	}
+
+	if err := database.DB.Delete(&entry).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to delete log", "code": "db_error"})
+		return
+	}
+
+	if media.IsR2Available() {
+		if key := media.KeyFromURL(entry.RawFileURL); key != "" {
+			if err := media.DeleteFile(c.Request.Context(), key); err != nil {
+				log.Printf("[Logs] R2 cleanup failed for log %s (key %s): %v", entry.ID, key, err)
+			}
+		}
+	}
+
+	c.JSON(http.StatusOK, gin.H{"id": entry.ID, "deleted": true})
 }

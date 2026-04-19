@@ -36,26 +36,11 @@ func SearchLogs(ctx context.Context, userID uint, params LogSearchParams) ([]Log
 		params.Limit = 5
 	}
 
-	log.Printf("[Search] userID=%d query=%q date_from=%q date_to=%q limit=%d",
-		userID, params.Query, params.DateFrom, params.DateTo, params.Limit)
-
-	var rawCounts struct {
-		ChunksAll   int64
-		ChunksForMe int64
-		LogsForMe   int64
-	}
-	database.DB.Raw(`SELECT COUNT(*) FROM log_chunks`).Scan(&rawCounts.ChunksAll)
-	database.DB.Raw(`SELECT COUNT(*) FROM log_chunks lc JOIN logs l ON l.id = lc.log_id WHERE l.user_id = ?`, userID).Scan(&rawCounts.ChunksForMe)
-	database.DB.Raw(`SELECT COUNT(*) FROM logs WHERE user_id = ?`, userID).Scan(&rawCounts.LogsForMe)
-	log.Printf("[Search] DB state: chunks_total=%d chunks_for_user=%d logs_for_user=%d",
-		rawCounts.ChunksAll, rawCounts.ChunksForMe, rawCounts.LogsForMe)
-
 	gemini := ai.NewGeminiUnderstanding(ai.GetGeminiClient())
 	embedding, err := gemini.Embed(ctx, params.Query)
 	if err != nil {
 		return nil, fmt.Errorf("embed query: %w", err)
 	}
-	log.Printf("[Search] query embedding dims=%d", len(embedding))
 
 	vec := pgvector.NewVector(embedding)
 

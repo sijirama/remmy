@@ -246,8 +246,7 @@ export default function Chat() {
     }
     setLoading(true);
     try {
-      const context = history.slice(-40).map(({ role, content }) => ({ role, content }));
-      const res = await sendMessage(text, context);
+      const res = await sendMessage(text);
       setHistory(prev => [...prev, {
         role: 'model',
         content: res.response,
@@ -260,7 +259,7 @@ export default function Chat() {
     } finally {
       setLoading(false);
     }
-  }, [input, loading, history]);
+  }, [input, loading]);
 
   const onKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && !e.shiftKey) {

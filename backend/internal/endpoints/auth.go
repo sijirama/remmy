@@ -1,7 +1,6 @@
 package endpoints
 
 import (
-	"log"
 	"net/http"
 	"os"
 
@@ -112,41 +111,6 @@ func AuthToken(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"token": token})
 }
 
-func AuthOnboard(c *gin.Context) {
-	userID, exists := c.Get("userID")
-	if !exists {
-		log.Println("[Auth] Onboard failed: userID not found in context")
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
-		return
-	}
-
-	var req struct {
-		Username string `json:"username" binding:"required"`
-	}
-
-	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-		return
-	}
-
-	var existingUser models.User
-	if err := database.DB.Where("username = ?", req.Username).First(&existingUser).Error; err == nil {
-		c.JSON(http.StatusConflict, gin.H{"error": "Username is already taken"})
-		return
-	}
-
-	if err := database.DB.Model(&models.User{}).Where("id = ?", userID).Updates(map[string]interface{}{
-		"username":  req.Username,
-		"onboarded": true,
-	}).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update user"})
-		return
-	}
-
-	log.Printf("[Auth] User %v successfully onboarded as %s", userID, req.Username)
-	c.JSON(http.StatusOK, gin.H{"message": "Onboarding complete"})
-}
-
 func UpdateProfile(c *gin.Context) {
 	userID, exists := c.Get("userID")
 	if !exists {
@@ -182,18 +146,3 @@ func UpdateProfile(c *gin.Context) {
 	c.JSON(http.StatusOK, user)
 }
 
-func CheckUsername(c *gin.Context) {
-	username := c.Query("username")
-	if username == "" {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "username query param required"})
-		return
-	}
-
-	var user models.User
-	if err := database.DB.Where("username = ?", username).First(&user).Error; err != nil {
-		c.JSON(http.StatusOK, gin.H{"available": true})
-		return
-	}
-
-	c.JSON(http.StatusOK, gin.H{"available": false})
-}

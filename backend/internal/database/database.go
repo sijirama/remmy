@@ -15,6 +15,19 @@ import (
 
 var DB *gorm.DB
 
+func resolveLogLevel() gormlogger.LogLevel {
+	switch strings.ToLower(os.Getenv("LOG_LEVEL")) {
+	case "silent":
+		return gormlogger.Silent
+	case "error":
+		return gormlogger.Error
+	case "info":
+		return gormlogger.Info
+	default:
+		return gormlogger.Warn
+	}
+}
+
 func InitializeDatabase() {
 	var err error
 	dsn := fmt.Sprintf("host=%s user=%s password=%s dbname=%s port=%s sslmode=disable TimeZone=UTC",
@@ -26,7 +39,7 @@ func InitializeDatabase() {
 	)
 
 	DB, err = gorm.Open(postgres.Open(dsn), &gorm.Config{
-		Logger: gormlogger.Default.LogMode(gormlogger.Info),
+		Logger: gormlogger.Default.LogMode(resolveLogLevel()),
 	})
 	if err != nil {
 		log.Fatalf("[Remmy] Failed to connect to database: %v", err)

@@ -20,10 +20,15 @@ import (
 	"github.com/google/generative-ai-go/genai"
 )
 
-func buildSystemPrompt() string {
-	today := time.Now().UTC().Format("2006-01-02 (Monday)")
+func buildSystemPrompt(clientDate, clientDay string) string {
+	todayDate := clientDate
+	todayDay := clientDay
+	if todayDate == "" {
+		todayDate = time.Now().UTC().Format("2006-01-02")
+		todayDay = time.Now().UTC().Format("Monday")
+	}
 	return fmt.Sprintf(`You are Remmy, a personal assistant with access to the user's daily logs.
-Today's date is %s (UTC). Use this when interpreting relative dates like "today", "yesterday", "last week".
+Today's date is %s (%s). Use this when interpreting relative dates like "today", "yesterday", "last week".
 
 The user logs their day through voice memos and images. You have a tool called log_search that lets you search through their logs semantically.
 
@@ -35,36 +40,40 @@ Use log_search whenever the user asks about:
 
 When calling log_search, only supply date_from/date_to if the user's question is explicitly scoped to a specific day or range. When in doubt, omit them so the semantic match can find anything relevant.
 
-Be conversational, warm, and concise. Never make up log content — only reference what log_search returns.`, today)
+Be conversational, warm, and concise. Never make up log content — only reference what log_search returns.`, todayDate, todayDay)
 }
 
 type chatRequest struct {
-	Message string        `json:"message" binding:"required"`
-	History []chatMessage `json:"history"`
+	Message    string `json:"message" binding:"required"`
+	ClientDate string `json:"client_date"`
+	ClientDay  string `json:"client_day"`
 }
 
-type chatMessage struct {
-	Role    string `json:"role"`
-	Content string `json:"content"`
-}
+const chatHistoryContextSize = 40
 
-var logSearchTool = &genai.Tool{
-	FunctionDeclarations: []*genai.FunctionDeclaration{
-		{
-			Name:        "log_search",
-			Description: "Search the user's personal daily logs semantically. Use this whenever the user references something they may have logged.",
-			Parameters: &genai.Schema{
-				Type: genai.TypeObject,
-				Properties: map[string]*genai.Schema{
-					"query":     {Type: genai.TypeString, Description: "semantic search query describing what to find"},
-					"date_from": {Type: genai.TypeString, Description: "optional start date filter, format YYYY-MM-DD"},
-					"date_to":   {Type: genai.TypeString, Description: "optional end date filter, format YYYY-MM-DD"},
-					"limit":     {Type: genai.TypeInteger, Description: "max number of results, default 5"},
+func buildLogSearchTool(clientDate string) *genai.Tool {
+	todayDate := clientDate
+	if todayDate == "" {
+		todayDate = time.Now().UTC().Format("2006-01-02")
+	}
+	return &genai.Tool{
+		FunctionDeclarations: []*genai.FunctionDeclaration{
+			{
+				Name:        "log_search",
+				Description: "Semantic search over the user's personal daily logs (voice memos + images). Call this whenever the user references something they might have logged. Prefer calling with only a query — the semantic match handles most intent well. Only add date filters when the user is clearly scoped to a specific day or range.",
+				Parameters: &genai.Schema{
+					Type: genai.TypeObject,
+					Properties: map[string]*genai.Schema{
+						"query":     {Type: genai.TypeString, Description: "semantic search query describing what to find"},
+						"date_from": {Type: genai.TypeString, Description: fmt.Sprintf("OPTIONAL start date, format YYYY-MM-DD. Today is %s. OMIT this parameter unless the user explicitly scopes to a date or range. Do NOT invent dates.", todayDate)},
+						"date_to":   {Type: genai.TypeString, Description: fmt.Sprintf("OPTIONAL end date, format YYYY-MM-DD. Today is %s. OMIT this parameter unless the user explicitly scopes to a date or range. Do NOT invent dates.", todayDate)},
+						"limit":     {Type: genai.TypeInteger, Description: "max number of results, default 5"},
+					},
+					Required: []string{"query"},
 				},
-				Required: []string{"query"},
 			},
 		},
-	},
+	}
 }
 
 const chatPageSize = 40
@@ -115,14 +124,26 @@ func Chat(c *gin.Context) {
 
 	client := ai.GetGeminiClient()
 	model := client.GenerativeModel("gemini-2.0-flash")
-	model.Tools = []*genai.Tool{logSearchTool}
+	model.Tools = []*genai.Tool{buildLogSearchTool(req.ClientDate)}
 	model.SystemInstruction = &genai.Content{
-		Parts: []genai.Part{genai.Text(buildSystemPrompt())},
+		Parts: []genai.Part{genai.Text(buildSystemPrompt(req.ClientDate, req.ClientDay))},
 	}
 
 	cs := model.StartChat()
 
-	for _, msg := range req.History {
+	var prior []models.ChatMessage
+	if err := database.DB.
+		Where("user_id = ?", userID).
+		Order("created_at DESC").
+		Limit(chatHistoryContextSize).
+		Find(&prior).Error; err != nil {
+		log.Printf("[Chat] failed to load history for user %d: %v", userID, err)
+	}
+	// Reverse so oldest is first
+	for i, j := 0, len(prior)-1; i < j; i, j = i+1, j-1 {
+		prior[i], prior[j] = prior[j], prior[i]
+	}
+	for _, msg := range prior {
 		cs.History = append(cs.History, &genai.Content{
 			Role:  msg.Role,
 			Parts: []genai.Part{genai.Text(msg.Content)},
@@ -267,10 +288,18 @@ func executeLogSearch(ctx context.Context, userID uint, args map[string]interfac
 		params.Limit = int(l)
 	}
 
+	log.Printf("[Chat] Starting executeLogSearch for user %d. Query: %q, DateFrom: %q, DateTo: %q, Limit: %d", userID, params.Query, params.DateFrom, params.DateTo, params.Limit)
+	startTime := time.Now()
+
 	results, err := search.SearchLogs(ctx, userID, params)
+	elapsedTime := time.Since(startTime)
+
 	if err != nil {
+		log.Printf("[Chat] executeLogSearch failed after %v: %v", elapsedTime, err)
 		return nil, nil, err
 	}
+
+	log.Printf("[Chat] executeLogSearch completed in %v. Found %d results.", elapsedTime, len(results))
 
 	serialized, err := json.Marshal(results)
 	if err != nil {

@@ -38,8 +38,19 @@ export async function getChatHistory(beforeId?: number): Promise<ChatHistoryPage
   };
 }
 
-export async function sendMessage(message: string, history: ChatMessage[]): Promise<SendMessageResponse> {
-  const res = await api.post('v1/chat', { message, history });
+export async function sendMessage(message: string): Promise<SendMessageResponse> {
+  const d = new Date();
+  const year = d.getFullYear();
+  const month = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  const clientDate = `${year}-${month}-${day}`;
+  const clientDay = new Intl.DateTimeFormat('en-US', { weekday: 'long' }).format(d);
+
+  const res = await api.post('v1/chat', { 
+    message,
+    client_date: clientDate,
+    client_day: clientDay
+  });
   return {
     response: res.data.response,
     search_context: res.data.search_context ?? undefined,

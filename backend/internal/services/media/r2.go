@@ -184,3 +184,22 @@ func UploadFile(ctx context.Context, file multipart.File, header *multipart.File
 func DeleteFile(ctx context.Context, key string) error {
 	return GetR2Service().DeleteFile(ctx, key)
 }
+
+// KeyFromURL derives the object key that was uploaded by trimming the known public URL prefix.
+// Returns "" if the URL doesn't match a known prefix.
+func KeyFromURL(url string) string {
+	if r2Service == nil || url == "" {
+		return ""
+	}
+	if r2Service.publicURL != "" {
+		prefix := strings.TrimRight(r2Service.publicURL, "/") + "/"
+		if strings.HasPrefix(url, prefix) {
+			return strings.TrimPrefix(url, prefix)
+		}
+	}
+	fallback := fmt.Sprintf("https://%s.r2.dev/", r2Service.bucketName)
+	if strings.HasPrefix(url, fallback) {
+		return strings.TrimPrefix(url, fallback)
+	}
+	return ""
+}

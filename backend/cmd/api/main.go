@@ -17,6 +17,7 @@ import (
 
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
+	"golang.org/x/time/rate"
 )
 
 func buildAllowedOrigins() map[string]struct{} {
@@ -78,7 +79,6 @@ func main() {
 		protected.Use(middleware.AuthMiddleware())
 		{
 			protected.GET("/me", endpoints.AuthMe)
-			protected.POST("/onboard", endpoints.AuthOnboard)
 		}
 	}
 
@@ -89,28 +89,32 @@ func main() {
 		{
 			apiAuth.GET("/me", middleware.AuthMiddleware(), endpoints.AuthMe)
 			apiAuth.GET("/token", middleware.AuthMiddleware(), endpoints.AuthToken)
-			apiAuth.POST("/onboard", middleware.AuthMiddleware(), endpoints.AuthOnboard)
 			apiAuth.POST("/logout", endpoints.AuthLogout)
 			apiAuth.PUT("/profile", middleware.AuthMiddleware(), endpoints.UpdateProfile)
-			apiAuth.GET("/check-username", middleware.OptionalAuthMiddleware(), endpoints.CheckUsername)
 		}
 
 		// ── Logs ──
 		logs := api.Group("/v1/logs")
 		logs.Use(middleware.AuthMiddleware())
 		{
-			logs.POST("/audio", endpoints.UploadAudioLog)
-			logs.POST("/image", endpoints.UploadImageLog)
-			logs.GET("", endpoints.GetLogs)
-			logs.GET("/:id", endpoints.GetLogByID)
+			logs.GET("", middleware.RateLimit(rate.Limit(5), 20), endpoints.GetLogs)
+			logs.GET("/:id", middleware.RateLimit(rate.Limit(5), 20), endpoints.GetLogByID)
+
+			uploadLimit := middleware.RateLimit(rate.Every(2*time.Second), 5)
+			logs.POST("/audio", uploadLimit, endpoints.UploadAudioLog)
+			logs.POST("/image", uploadLimit, endpoints.UploadImageLog)
+
+			mutateLimit := middleware.RateLimit(rate.Every(2*time.Second), 5)
+			logs.POST("/:id/reprocess", mutateLimit, endpoints.ReprocessLog)
+			logs.DELETE("/:id", mutateLimit, endpoints.DeleteLog)
 		}
 
 		// ── Chat ──
 		chat := api.Group("/v1/chat")
 		chat.Use(middleware.AuthMiddleware())
 		{
-			chat.GET("/history", endpoints.GetChatHistory)
-			chat.POST("", endpoints.Chat)
+			chat.GET("/history", middleware.RateLimit(rate.Limit(5), 20), endpoints.GetChatHistory)
+			chat.POST("", middleware.RateLimit(rate.Every(3*time.Second), 3), endpoints.Chat)
 		}
 
 		// ── Health ──
