@@ -6,6 +6,7 @@ import ProtectedRoute from './components/ProtectedRoute';
 import AuthRedirect from './components/AuthRedirect';
 import Landing from './pages/Landing';
 import Me from './pages/Dashboard';
+import Insights from './pages/Insights';
 import LogDetail from './pages/LogDetail';
 import Chat from './pages/Chat';
 import NotFound from './pages/NotFound';
@@ -35,6 +36,11 @@ function App() {
               <Route path="chat" element={
                 <ProtectedRoute>
                   <Chat />
+                </ProtectedRoute>
+              } />
+              <Route path="insights" element={
+                <ProtectedRoute>
+                  <Insights />
                 </ProtectedRoute>
               } />
             </Route>

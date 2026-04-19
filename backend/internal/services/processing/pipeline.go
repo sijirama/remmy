@@ -76,6 +76,7 @@ func ProcessLog(ctx context.Context, job ProcessingJob) error {
 	entry.Title = result.Title
 	entry.RewrittenContent = result.Rewritten
 	entry.HabitMatches = result.Habits
+	entry.MoodScore = result.MoodScore
 	database.DB.Save(&entry)
 
 	chunks := chunkText(result.Rewritten)
@@ -98,6 +99,13 @@ func ProcessLog(ctx context.Context, job ProcessingJob) error {
 	}
 
 	setStatus(job.LogID, "ready")
+
+	// Invalidate heatmap cache
+	if database.Redis != nil {
+		cacheKey := fmt.Sprintf("heatmap:%d", entry.UserID)
+		database.Redis.Del(ctx, cacheKey)
+	}
+
 	log.Printf("[Processing] Complete for log %s (%d chunks)", job.LogID, len(chunks))
 	return nil
 }

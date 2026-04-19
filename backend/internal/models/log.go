@@ -17,6 +17,7 @@ type Log struct {
 	RawDescription   string    `json:"raw_description,omitempty"`
 	RewrittenContent string    `json:"rewritten_content,omitempty"`
 	HabitMatches     []string  `gorm:"serializer:json" json:"habit_matches"`
+	MoodScore        int       `gorm:"default:0" json:"mood_score"`
 	LoggedAt         time.Time `gorm:"index" json:"logged_at"`
 	CreatedAt        time.Time `json:"created_at"`
 	UpdatedAt        time.Time `json:"-"`

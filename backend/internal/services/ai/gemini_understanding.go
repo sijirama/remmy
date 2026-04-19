@@ -22,6 +22,7 @@ type rewriteResponse struct {
 	Title     string   `json:"title"`
 	Rewritten string   `json:"rewritten"`
 	Habits    []string `json:"habits"`
+	MoodScore int      `json:"mood_score"`
 }
 
 func (g *GeminiUnderstanding) Rewrite(ctx context.Context, raw string, logType string) (*UnderstandingResult, error) {
@@ -30,10 +31,12 @@ func (g *GeminiUnderstanding) Rewrite(ctx context.Context, raw string, logType s
 1. Generate a short title (3-6 words) that captures the essence of the entry
 2. Rewrite the raw content into clean, structured prose that preserves all meaning and detail but reads clearly
 3. Extract any habits or activities mentioned
-4. Return a JSON object with:
+4. Evaluate the user's emotional state and mood from 1 (very negative/stressed) to 10 (very positive/happy). Use 5 for neutral or purely informational entries.
+5. Return a JSON object with:
    - title: string (3-6 word title)
    - rewritten: string (the clean rewritten content)
    - habits: string[] (list of habits or activities detected)
+   - mood_score: number (1-10)
 
 Raw content type: %s
 Raw content: %s
@@ -62,10 +65,15 @@ Return only valid JSON. No preamble.`, logType, raw)
 		parsed.Habits = []string{}
 	}
 
+	if parsed.MoodScore == 0 {
+		parsed.MoodScore = 5
+	}
+
 	return &UnderstandingResult{
 		Title:     parsed.Title,
 		Rewritten: parsed.Rewritten,
 		Habits:    parsed.Habits,
+		MoodScore: parsed.MoodScore,
 	}, nil
 }
 

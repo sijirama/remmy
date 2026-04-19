@@ -117,6 +117,13 @@ func main() {
 			chat.POST("", middleware.RateLimit(rate.Every(3*time.Second), 3), endpoints.Chat)
 		}
 
+		// ── Metrics ──
+		metrics := api.Group("/v1/metrics")
+		metrics.Use(middleware.AuthMiddleware())
+		{
+			metrics.GET("/heatmap", endpoints.GetHeatmapData)
+		}
+
 		// ── Health ──
 		api.GET("/health", func(c *gin.Context) {
 			c.JSON(200, gin.H{"status": "ok"})

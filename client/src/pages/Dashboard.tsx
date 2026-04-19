@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ChevronLeft, ChevronRight, Mic, Camera, LogOut, MessageSquare } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Mic, Camera, LogOut, MessageSquare, BarChart3 } from 'lucide-react';
 import * as DropdownMenu from '@radix-ui/react-dropdown-menu';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
@@ -391,6 +391,15 @@ export default function Dashboard() {
                 aria-label="chat"
               >
                 <MessageSquare size={15} strokeWidth={2} style={{ color: '#636E72' }} />
+              </button>
+
+              {/* Insights — heatmap icon button */}
+              <button
+                onClick={() => navigate('/insights')}
+                className="w-8 h-8 rounded-full flex items-center justify-center hover:bg-black/[0.05] transition-colors"
+                aria-label="insights"
+              >
+                <BarChart3 size={15} strokeWidth={2} style={{ color: '#636E72' }} />
               </button>
 
               {/* Avatar — Radix DropdownMenu (shadcn-style) */}

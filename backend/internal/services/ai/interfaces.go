@@ -14,6 +14,7 @@ type UnderstandingResult struct {
 	Title     string
 	Rewritten string
 	Habits    []string
+	MoodScore int
 }
 
 type UnderstandingModel interface {
