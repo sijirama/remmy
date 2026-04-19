@@ -41,7 +41,7 @@ const Insights = () => {
     const month = date.getMonth();
     const firstDay = new Date(year, month, 1);
     const lastDay = new Date(year, month + 1, 0);
-    
+
     const now = new Date();
     const isCurrentMonth = year === now.getFullYear() && month === now.getMonth();
     // For current month, stop at today. For past months, show full month.
@@ -72,7 +72,7 @@ const Insights = () => {
       <div aria-hidden className="pointer-events-none absolute" style={{ top: '20%', right: -100, width: 360, height: 360, borderRadius: '50%', background: 'radial-gradient(circle, rgba(162,155,254,0.15) 0%, rgba(162,155,254,0) 70%)', filter: 'blur(60px)', zIndex: 0 }} />
       <div aria-hidden className="pointer-events-none absolute" style={{ top: '45%', left: -140, width: 340, height: 340, borderRadius: '50%', background: 'radial-gradient(circle, rgba(232,67,147,0.1) 0%, rgba(232,67,147,0) 70%)', filter: 'blur(70px)', zIndex: 0 }} />
 
-      <div className="relative w-[90%] sm:w-full max-w-xl mx-auto flex flex-col h-full">
+      <div className="relative w-[90%] sm:w-full max-w-xl md:max-w-4xl mx-auto flex flex-col h-full">
         <div className="block sm:hidden h-6 w-full flex-shrink-0" />
 
         {/* ── Navbar ── */}
@@ -136,7 +136,7 @@ const Insights = () => {
                 <span className="w-5 h-5 rounded-full border-[1.5px] border-transparent animate-spin block" style={{ borderTopColor: '#111', borderRightColor: 'rgba(0,0,0,0.15)' }} />
               </div>
             ) : (
-              <div className="space-y-16 sm:px-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-x-5 gap-y-8 sm:px-4">
                 {months.map((month, idx) => (
                   <div key={idx} className="space-y-0">
                     <div className="h-5 w-full" />
