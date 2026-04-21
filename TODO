@@ -1,1 +1,17 @@
+1. make logs fire and forget, immediately i record my vn i should be able to close my phone, right now it fails if i close my phone too early
+2. make allowlist for the app so only me can use my instace 
+3. work on the fucking chat, it has mad issues, never reliable
 
+- errors i keep seeing
+2026/04/21 09:12:21 [Chat] SendMessage attempt 2 failed for user 1: googleapi: Error 429: Resource exhausted. Please try again later. Please refer to https://cloud.google.com/vertex-ai/generative-ai/docs/error-code-429 for more details.
+2026/04/21 09:12:26 [Chat] SendMessage attempt 3 failed for user 1: googleapi: Error 429: Resource exhausted. Please try again later. Please refer to https://cloud.google.com/vertex-ai/generative-ai/docs/error-code-429 for more details.
+2026/04/21 09:12:34 [Chat] SendMessage attempt 4 failed for user 1: googleapi: Error 429: Resource exhausted. Please try again later. Please refer to https://cloud.google.com/vertex-ai/generative-ai/docs/error-code-429 for more details.
+2026/04/21 09:12:50 [Chat] SendMessage attempt 5 failed for user 1: googleapi: Error 429: Resource exhausted. Please try again later. Please refer to https://cloud.google.com/vertex-ai/generative-ai/docs/error-code-429 for more details.
+2026/04/21 09:12:50 [Chat] SendMessage failed for user 1 after retries: googleapi: Error 429: Resource exhausted. Please try again later. Please refer to https://cloud.google.com/vertex-ai/generative-ai/docs/error-code-429 for more details.
+
+
+4. ui fix, in mobile reduce the nav top space a bit, the space between the top of the logo and edge of screen
+	- better yet let's make all navs the same, make it a reusablecomponent pls 
+
+5. in mobile chat add a bit of space to the bottom of the textarea
+	add space to push it up a bit pls

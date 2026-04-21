@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"math/rand"
 	"strings"
 	"time"
 
@@ -49,7 +50,7 @@ type chatRequest struct {
 	ClientDay  string `json:"client_day"`
 }
 
-const chatHistoryContextSize = 40
+const chatHistoryContextSize = 15
 
 func buildLogSearchTool(clientDate string) *genai.Tool {
 	todayDate := clientDate
@@ -155,22 +156,34 @@ func Chat(c *gin.Context) {
 
 	var resp *genai.GenerateContentResponse
 	var sendErr error
-	for attempt := 0; attempt < 5; attempt++ {
+	for attempt := 0; attempt < 8; attempt++ {
 		if attempt > 0 {
-			wait := time.Duration(1<<uint(attempt)) * time.Second
+			// Exponential backoff: 2s, 4s, 8s, 16s...
+			// Add jitter: ±20%
+			baseWait := time.Duration(1<<uint(attempt)) * 2 * time.Second
+			jitter := time.Duration(rand.Int63n(int64(baseWait) / 5))
+			if rand.Intn(2) == 0 {
+				baseWait += jitter
+			} else {
+				baseWait -= jitter
+			}
+
+			log.Printf("[Chat] 429 detected, backing off for %v (attempt %d/8)", baseWait, attempt+1)
+
 			select {
 			case <-c.Request.Context().Done():
 				c.JSON(http.StatusInternalServerError, gin.H{"error": "request cancelled", "code": "cancelled"})
 				return
-			case <-time.After(wait):
+			case <-time.After(baseWait):
 			}
 		}
 		resp, sendErr = cs.SendMessage(c.Request.Context(), parts...)
 		if sendErr == nil {
 			break
 		}
-		log.Printf("[Chat] SendMessage attempt %d failed for user %d: %v", attempt+1, userID, sendErr)
+
 		if !strings.Contains(sendErr.Error(), "429") {
+			log.Printf("[Chat] SendMessage failed for user %d: %v", userID, sendErr)
 			break
 		}
 	}
@@ -245,13 +258,22 @@ func runToolLoop(ctx context.Context, cs *genai.ChatSession, resp *genai.Generat
 		}
 
 		var sendErr error
-		for attempt := 0; attempt < 5; attempt++ {
+		for attempt := 0; attempt < 8; attempt++ {
 			if attempt > 0 {
-				wait := time.Duration(1<<uint(attempt)) * time.Second
+				baseWait := time.Duration(1<<uint(attempt)) * 2 * time.Second
+				jitter := time.Duration(rand.Int63n(int64(baseWait) / 5))
+				if rand.Intn(2) == 0 {
+					baseWait += jitter
+				} else {
+					baseWait -= jitter
+				}
+
+				log.Printf("[Chat] 429 on tool response, backing off for %v (attempt %d/8)", baseWait, attempt+1)
+
 				select {
 				case <-ctx.Done():
 					return "", nil, ctx.Err()
-				case <-time.After(wait):
+				case <-time.After(baseWait):
 				}
 			}
 			resp, sendErr = cs.SendMessage(ctx, genai.FunctionResponse{
@@ -264,7 +286,6 @@ func runToolLoop(ctx context.Context, cs *genai.ChatSession, resp *genai.Generat
 			if !strings.Contains(sendErr.Error(), "429") {
 				break
 			}
-			log.Printf("[Chat] 429 on SendMessage attempt %d, retrying", attempt+1)
 		}
 		if sendErr != nil {
 			return "", nil, fmt.Errorf("send tool response: %w", sendErr)

@@ -11,6 +11,7 @@ import (
 	"remmy/internal/models"
 	"remmy/internal/services/media"
 	"remmy/internal/services/processing"
+	"io"
 
 	"github.com/gin-gonic/gin"
 )
@@ -36,10 +37,9 @@ func UploadAudioLog(c *gin.Context) {
 	}
 	defer file.Close()
 
-	folder := fmt.Sprintf("audio/%d", userID)
-	result, err := media.UploadFile(c.Request.Context(), file, header, folder)
+	fileContent, err := io.ReadAll(file)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "upload failed", "code": "upload_error"})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to read file", "code": "read_error"})
 		return
 	}
 
@@ -47,7 +47,7 @@ func UploadAudioLog(c *gin.Context) {
 		UserID:       userID,
 		Type:         "audio",
 		Status:       "processing",
-		RawFileURL:   result.URL,
+		RawFileURL:   "", // Will be populated after background upload
 		HabitMatches: []string{},
 		LoggedAt:     time.Now().UTC(),
 	}
@@ -56,19 +56,26 @@ func UploadAudioLog(c *gin.Context) {
 		return
 	}
 
-	processing.Enqueue(processing.ProcessingJob{
-		LogID:   entry.ID,
-		LogType: "audio",
-		FileURL: result.URL,
-		UserID:  userID,
-	})
+	// Buffer in Redis
+	redisKey := fmt.Sprintf("blob:%s", entry.ID)
+	if err := database.Redis.Set(c.Request.Context(), redisKey, fileContent, 30*time.Minute).Err(); err != nil {
+		log.Printf("[Logs] Redis buffer failed for log %s: %v", entry.ID, err)
+		// Fallback: delete entry and fail
+		database.DB.Delete(&entry)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to buffer log", "code": "buffer_error"})
+		return
+	}
 
+	// Respond accepted immediately
 	c.JSON(http.StatusAccepted, gin.H{
 		"id":         entry.ID,
 		"type":       entry.Type,
 		"status":     entry.Status,
 		"created_at": entry.CreatedAt,
 	})
+
+	// Handle storage upload and processing in background
+	go backgroundUpload(entry.ID, entry.Type, header.Filename, userID)
 }
 
 func UploadImageLog(c *gin.Context) {
@@ -87,10 +94,9 @@ func UploadImageLog(c *gin.Context) {
 	}
 	defer file.Close()
 
-	folder := fmt.Sprintf("images/%d", userID)
-	result, err := media.UploadFile(c.Request.Context(), file, header, folder)
+	fileContent, err := io.ReadAll(file)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "upload failed", "code": "upload_error"})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to read file", "code": "read_error"})
 		return
 	}
 
@@ -98,7 +104,7 @@ func UploadImageLog(c *gin.Context) {
 		UserID:       userID,
 		Type:         "image",
 		Status:       "processing",
-		RawFileURL:   result.URL,
+		RawFileURL:   "",
 		HabitMatches: []string{},
 		LoggedAt:     time.Now().UTC(),
 	}
@@ -107,12 +113,14 @@ func UploadImageLog(c *gin.Context) {
 		return
 	}
 
-	processing.Enqueue(processing.ProcessingJob{
-		LogID:   entry.ID,
-		LogType: "image",
-		FileURL: result.URL,
-		UserID:  userID,
-	})
+	// Buffer in Redis
+	redisKey := fmt.Sprintf("blob:%s", entry.ID)
+	if err := database.Redis.Set(c.Request.Context(), redisKey, fileContent, 30*time.Minute).Err(); err != nil {
+		log.Printf("[Logs] Redis buffer failed for log %s: %v", entry.ID, err)
+		database.DB.Delete(&entry)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to buffer log", "code": "buffer_error"})
+		return
+	}
 
 	c.JSON(http.StatusAccepted, gin.H{
 		"id":         entry.ID,
@@ -120,6 +128,8 @@ func UploadImageLog(c *gin.Context) {
 		"status":     entry.Status,
 		"created_at": entry.CreatedAt,
 	})
+
+	go backgroundUpload(entry.ID, entry.Type, header.Filename, userID)
 }
 
 const defaultPageSize = 20
@@ -260,4 +270,44 @@ func DeleteLog(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{"id": entry.ID, "deleted": true})
+}
+
+func backgroundUpload(logID string, logType string, fileName string, userID uint) {
+	ctx := context.Background()
+	redisKey := fmt.Sprintf("blob:%s", logID)
+
+	// Retrieve from Redis
+	blob, err := database.Redis.Get(ctx, redisKey).Bytes()
+	if err != nil {
+		log.Printf("[Logs] Background upload failed to get blob from Redis for log %s: %v", logID, err)
+		return
+	}
+
+	folder := fmt.Sprintf("%s/%d", logType, userID)
+	if logType == "audio" {
+		folder = fmt.Sprintf("audio/%d", userID)
+	} else if logType == "image" {
+		folder = fmt.Sprintf("images/%d", userID)
+	}
+
+	// Upload to R2
+	result, err := media.UploadFromBytes(ctx, blob, fileName, folder)
+	if err != nil {
+		log.Printf("[Logs] Background upload to R2 failed for log %s: %v", logID, err)
+		return
+	}
+
+	// Update DB and cleanup Redis
+	database.DB.Model(&models.Log{}).Where("id = ?", logID).Update("raw_file_url", result.URL)
+	database.Redis.Del(ctx, redisKey)
+
+	// Trigger processing
+	processing.Enqueue(processing.ProcessingJob{
+		LogID:   logID,
+		LogType: logType,
+		FileURL: result.URL,
+		UserID:  userID,
+	})
+
+	log.Printf("[Logs] Background upload and enqueue complete for log %s", logID)
 }

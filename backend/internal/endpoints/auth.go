@@ -7,6 +7,7 @@ import (
 	"remmy/internal/database"
 	"remmy/internal/models"
 	"remmy/internal/utils/jwt"
+	"strings"
 
 	"github.com/gin-gonic/gin"
 	"github.com/markbates/goth/gothic"
@@ -38,6 +39,14 @@ func AuthGoogleCallback(c *gin.Context) {
 	gothUser, err := gothic.CompleteUserAuth(c.Writer, c.Request)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	if !isEmailAllowed(gothUser.Email) {
+		c.JSON(http.StatusForbidden, gin.H{
+			"error": "You are not authorized to use this instance. Access denied.",
+			"code":  "unauthorized_email",
+		})
 		return
 	}
 
@@ -146,3 +155,37 @@ func UpdateProfile(c *gin.Context) {
 	c.JSON(http.StatusOK, user)
 }
 
+func isEmailAllowed(email string) bool {
+	allowedEmails := os.Getenv("ALLOWED_EMAILS")
+	if allowedEmails == "" || allowedEmails == "*" {
+		return true
+	}
+
+	email = strings.ToLower(strings.TrimSpace(email))
+	parts := strings.Split(allowedEmails, ",")
+
+	for _, p := range parts {
+		pattern := strings.ToLower(strings.TrimSpace(p))
+		if pattern == "" {
+			continue
+		}
+
+		if pattern == "*" {
+			return true
+		}
+
+		// Exact match
+		if pattern == email {
+			return true
+		}
+
+		// Domain match (@domain.com)
+		if strings.HasPrefix(pattern, "@") {
+			if strings.HasSuffix(email, pattern) {
+				return true
+			}
+		}
+	}
+
+	return false
+}

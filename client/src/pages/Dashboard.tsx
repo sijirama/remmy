@@ -1,14 +1,13 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ChevronLeft, ChevronRight, Mic, Camera, LogOut, MessageSquare, BarChart3 } from 'lucide-react';
-import * as DropdownMenu from '@radix-ui/react-dropdown-menu';
-import { useNavigate } from 'react-router-dom';
+import { ChevronLeft, ChevronRight, Mic, Camera } from 'lucide-react';
 import { toast } from 'sonner';
 import { useAuth } from '../contexts/AuthContext';
 import { fetchLogs, fetchLog, uploadAudioLog, uploadImageLog } from '../lib/logs';
 import type { Log } from '../lib/types';
 import FeedEntry from '../components/feed/FeedEntry';
 import { palette } from '../components/feed/HabitChips';
+import Navbar from '../components/Navbar';
 
 /* ── Helpers ── */
 
@@ -203,8 +202,7 @@ function SkeletonRow({ isLast = false }: { isLast?: boolean }) {
 /* ── Dashboard ── */
 
 export default function Dashboard() {
-  const { user, logout } = useAuth();
-  const navigate = useNavigate();
+  const { user } = useAuth();
   const [date, setDate] = useState(new Date());
   const [logs, setLogs] = useState<Log[]>([]);
   const [loading, setLoading] = useState(true);
@@ -370,92 +368,7 @@ export default function Dashboard() {
           <div className="hidden sm:block h-0 w-full flex-shrink-0" />
 
           {/* ── Top bar ── */}
-          <motion.div
-            className="flex items-center justify-end sm:justify-between pt-2"
-            initial={{ opacity: 0, y: -8 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.3 }}
-          >
-            <span
-              className="hidden sm:inline text-[18px] font-extrabold tracking-[-0.04em]"
-              style={{ color: '#111' }}
-            >
-              remmy
-            </span>
-
-            <div className="flex items-center gap-1">
-              {/* Chat — plain icon button */}
-              <button
-                onClick={() => navigate('/chat')}
-                className="w-8 h-8 rounded-full flex items-center justify-center hover:bg-black/[0.05] transition-colors"
-                aria-label="chat"
-              >
-                <MessageSquare size={15} strokeWidth={2} style={{ color: '#636E72' }} />
-              </button>
-
-              {/* Insights — heatmap icon button */}
-              <button
-                onClick={() => navigate('/insights')}
-                className="w-8 h-8 rounded-full flex items-center justify-center hover:bg-black/[0.05] transition-colors"
-                aria-label="insights"
-              >
-                <BarChart3 size={15} strokeWidth={2} style={{ color: '#636E72' }} />
-              </button>
-
-              {/* Avatar — Radix DropdownMenu (shadcn-style) */}
-              <DropdownMenu.Root>
-                <DropdownMenu.Trigger asChild>
-                  <button
-                    className="w-8 h-8 rounded-full overflow-hidden transition-all ml-1 outline-none data-[state=open]:ring-2 data-[state=open]:ring-[#7C6DD8] data-[state=open]:ring-offset-2"
-                    style={{ boxShadow: '0 0 0 1.5px rgba(0,0,0,0.08)' }}
-                    aria-label="account menu"
-                  >
-                    {user?.profilePicture ? (
-                      <img
-                        src={user.profilePicture}
-                        alt={user.firstName}
-                        className="w-full h-full object-cover"
-                      />
-                    ) : (
-                      <div
-                        className="w-full h-full flex items-center justify-center text-[12px] font-semibold"
-                        style={{ background: '#f4f4f5', color: '#52525b' }}
-                      >
-                        {user?.firstName?.[0]?.toUpperCase() ?? '?'}
-                      </div>
-                    )}
-                  </button>
-                </DropdownMenu.Trigger>
-
-                <DropdownMenu.Portal>
-                  <DropdownMenu.Content
-                    className="shadcn-menu"
-                    align="end"
-                    sideOffset={8}
-                    style={{ width: 224 }}
-                  >
-                    <DropdownMenu.Label className="shadcn-label">
-                      <div className="flex flex-col leading-tight">
-                        <span className="text-[13px] font-medium truncate" style={{ color: '#09090b' }}>
-                          {user?.firstName} {user?.lastName}
-                        </span>
-                        <span className="text-[12px] font-normal truncate mt-1" style={{ color: '#71717a' }}>
-                          {user?.email}
-                        </span>
-                      </div>
-                    </DropdownMenu.Label>
-
-                    <DropdownMenu.Separator className="shadcn-separator" />
-
-                    <DropdownMenu.Item className="shadcn-item" onSelect={logout}>
-                      <LogOut size={14} strokeWidth={2} style={{ color: '#52525b' }} />
-                      <span>Sign out</span>
-                    </DropdownMenu.Item>
-                  </DropdownMenu.Content>
-                </DropdownMenu.Portal>
-              </DropdownMenu.Root>
-            </div>
-          </motion.div>
+          <Navbar />
 
 
 

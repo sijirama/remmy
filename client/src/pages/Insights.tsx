@@ -1,11 +1,10 @@
 import { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { ChevronLeft, Info } from 'lucide-react';
+import { Info } from 'lucide-react';
 import { getHeatmapData, type HeatmapDay } from '../lib/metrics';
+import Navbar from '../components/Navbar';
 
 const Insights = () => {
-  const navigate = useNavigate();
   const [data, setData] = useState<HeatmapDay[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -76,37 +75,7 @@ const Insights = () => {
         <div className="block sm:hidden h-6 w-full flex-shrink-0" />
 
         {/* ── Navbar ── */}
-        <div
-          className="flex-shrink-0 flex items-center justify-between sm:px-4 sm:mt-8"
-          style={{
-            height: 56,
-            background: 'rgba(250,250,250,0.92)',
-            backdropFilter: 'blur(18px)',
-            WebkitBackdropFilter: 'blur(18px)',
-            borderBottom: 'none',
-            position: 'relative',
-            zIndex: 20,
-          }}
-        >
-          <button
-            onClick={() => navigate('/me')}
-            className="flex items-center gap-1 transition-opacity hover:opacity-60 active:opacity-40"
-            style={{ color: '#3a3a42', marginLeft: -2, padding: '6px 6px 6px 0' }}
-          >
-            <ChevronLeft size={16} strokeWidth={2.2} />
-            <span className="text-[13px] font-medium" style={{ letterSpacing: '-0.01em' }}>feed</span>
-          </button>
-
-          <button
-            onClick={() => navigate('/me')}
-            className="text-[17px] font-extrabold transition-opacity hover:opacity-70"
-            style={{ color: '#111', letterSpacing: '-0.04em' }}
-          >
-            remmy
-          </button>
-
-          <div style={{ width: 56 }} />
-        </div>
+        <Navbar showBack backTo="/me" backLabel="feed" />
 
         {/* ── Content ── */}
         <div className="flex-1 overflow-y-auto hide-scrollbar pb-32">

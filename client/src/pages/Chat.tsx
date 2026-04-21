@@ -1,10 +1,10 @@
 import { useState, useRef, useEffect, useLayoutEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { useNavigate } from 'react-router-dom';
-import { ChevronLeft, ArrowUp, ChevronDown } from 'lucide-react';
+import { ArrowUp, ChevronDown } from 'lucide-react';
 import { toast } from 'sonner';
 import { sendMessage, getChatHistory } from '../lib/chat';
 import type { ChatMessage, SearchContext } from '../lib/chat';
+import Navbar from '../components/Navbar';
 
 /* ── Typing Indicator ── */
 
@@ -165,7 +165,6 @@ const SUGGESTIONS: { text: string; tone: 'lavender' | 'pink' | 'mint' | 'sky' | 
 ];
 
 export default function Chat() {
-  const navigate = useNavigate();
   const [history, setHistory] = useState<DisplayMessage[]>([]);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
@@ -310,38 +309,7 @@ export default function Chat() {
         {/* Bulletproof spacer to move it down securely */}
         <div className="block sm:hidden h-6 w-full flex-shrink-0" />
 
-        {/* ── Navbar ── */}
-        <div
-          className="flex-shrink-0 flex items-center justify-between sm:px-8 sm:mt-8"
-          style={{
-            height: 56,
-            background: 'rgba(250,250,250,0.92)',
-            backdropFilter: 'blur(18px)',
-            WebkitBackdropFilter: 'blur(18px)',
-            borderBottom: '1px solid rgba(0,0,0,0.06)',
-            position: 'relative',
-            zIndex: 20,
-          }}
-        >
-          <button
-            onClick={() => navigate('/me')}
-            className="flex items-center gap-1 transition-opacity hover:opacity-60 active:opacity-40"
-            style={{ color: '#3a3a42', marginLeft: -2, padding: '6px 6px 6px 0' }}
-          >
-            <ChevronLeft size={16} strokeWidth={2.2} />
-            <span className="text-[13px] font-medium" style={{ letterSpacing: '-0.01em' }}>feed</span>
-          </button>
-
-          <button
-            onClick={() => navigate('/me')}
-            className="text-[17px] font-extrabold transition-opacity hover:opacity-70"
-            style={{ color: '#111', letterSpacing: '-0.04em' }}
-          >
-            remmy
-          </button>
-
-          <div style={{ width: 56 }} />
-        </div>
+        <Navbar showBack backTo="/me" backLabel="feed" />
 
         {/* ── Messages ── */}
         <div
@@ -424,15 +392,14 @@ export default function Chat() {
           </div>
         </div>
 
-        <div
-          className="flex-shrink-0 sm:px-8 pt-2 sm:pt-3"
-          style={{
-            position: 'relative',
-            zIndex: 20,
-            paddingBottom: 8,
-            background: 'linear-gradient(to top, rgba(250,250,250,1) 60%, rgba(250,250,250,0))',
-          }}
-        >
+          <div
+            className="flex-shrink-0 sm:px-8 pt-2 sm:pt-3 pb-8 sm:pb-3"
+            style={{
+              position: 'relative',
+              zIndex: 20,
+              background: 'linear-gradient(to top, rgba(250,250,250,1) 60%, rgba(250,250,250,0))',
+            }}
+          >
           <div className="chat-input-shell">
             <textarea
               ref={textareaRef}
