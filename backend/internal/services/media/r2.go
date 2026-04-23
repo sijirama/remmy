@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"log"
+	"mime"
 	"mime/multipart"
 	"net/http"
 	"os"
@@ -168,7 +169,10 @@ func (r *R2Service) UploadFromBytes(ctx context.Context, data []byte, originalNa
 		key = fmt.Sprintf("%s/%s", strings.Trim(folder, "/"), filename)
 	}
 
-	contentType := http.DetectContentType(data)
+	contentType := mime.TypeByExtension(ext)
+	if contentType == "" {
+		contentType = http.DetectContentType(data)
+	}
 
 	_, err := r.client.PutObject(ctx, &s3.PutObjectInput{
 		Bucket:      aws.String(r.bucketName),

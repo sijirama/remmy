@@ -4,7 +4,10 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"mime"
 	"net/http"
+	"net/url"
+	"path"
 	"strings"
 
 	"github.com/google/generative-ai-go/genai"
@@ -31,12 +34,20 @@ func (g *GeminiASR) Transcribe(ctx context.Context, audioURL string) (string, er
 	}
 
 	mimeType := resp.Header.Get("Content-Type")
-	if mimeType == "" {
-		mimeType = "audio/webm"
-	}
 	// normalise: strip any suffix params like "audio/webm; codecs=opus"
 	mimeType = strings.SplitN(mimeType, ";", 2)[0]
 	mimeType = strings.TrimSpace(mimeType)
+	if mimeType == "" || mimeType == "application/octet-stream" {
+		if u, err := url.Parse(audioURL); err == nil {
+			if fromExt := mime.TypeByExtension(path.Ext(u.Path)); fromExt != "" {
+				mimeType = strings.SplitN(fromExt, ";", 2)[0]
+				mimeType = strings.TrimSpace(mimeType)
+			}
+		}
+	}
+	if mimeType == "" {
+		mimeType = "audio/webm"
+	}
 
 	model := g.client.GenerativeModel("gemini-3.1-flash-lite-preview")
 	res, err := model.GenerateContent(ctx,
