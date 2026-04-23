@@ -4,11 +4,12 @@ import (
 	"context"
 	"fmt"
 	"io"
-	"mime"
 	"net/http"
 	"net/url"
 	"path"
 	"strings"
+
+	"remmy/internal/services/media"
 
 	"github.com/google/generative-ai-go/genai"
 )
@@ -33,19 +34,19 @@ func (g *GeminiASR) Transcribe(ctx context.Context, audioURL string) (string, er
 		return "", fmt.Errorf("read audio: %w", err)
 	}
 
-	mimeType := resp.Header.Get("Content-Type")
-	// normalise: strip any suffix params like "audio/webm; codecs=opus"
-	mimeType = strings.SplitN(mimeType, ";", 2)[0]
-	mimeType = strings.TrimSpace(mimeType)
-	if mimeType == "" || mimeType == "application/octet-stream" {
-		if u, err := url.Parse(audioURL); err == nil {
-			if fromExt := mime.TypeByExtension(path.Ext(u.Path)); fromExt != "" {
-				mimeType = strings.SplitN(fromExt, ";", 2)[0]
-				mimeType = strings.TrimSpace(mimeType)
-			}
-		}
+	// Derive MIME from the URL extension first — stored Content-Type on R2
+	// objects is unreliable (older uploads landed as application/octet-stream,
+	// and system registries sometimes map webm to video/webm).
+	var mimeType string
+	if u, err := url.Parse(audioURL); err == nil {
+		mimeType = media.AudioMIMEByExt[strings.ToLower(path.Ext(u.Path))]
 	}
 	if mimeType == "" {
+		mimeType = resp.Header.Get("Content-Type")
+		mimeType = strings.SplitN(mimeType, ";", 2)[0]
+		mimeType = strings.TrimSpace(mimeType)
+	}
+	if mimeType == "" || !strings.HasPrefix(mimeType, "audio/") {
 		mimeType = "audio/webm"
 	}
 

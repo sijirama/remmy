@@ -31,6 +31,25 @@ type R2Service struct {
 
 var r2Service *R2Service
 
+// AudioMIMEByExt maps audio file extensions to MIME types Gemini accepts.
+// We maintain our own map because production containers often lack
+// /etc/mime.types, Go's built-in registry doesn't cover .webm/.m4a/.opus,
+// and system registries frequently map .webm to video/webm (Gemini ASR
+// needs audio/*).
+var AudioMIMEByExt = map[string]string{
+	".webm": "audio/webm",
+	".weba": "audio/webm",
+	".m4a":  "audio/mp4",
+	".mp4":  "audio/mp4",
+	".mp3":  "audio/mpeg",
+	".wav":  "audio/wav",
+	".ogg":  "audio/ogg",
+	".oga":  "audio/ogg",
+	".opus": "audio/opus",
+	".flac": "audio/flac",
+	".aac":  "audio/aac",
+}
+
 type R2Config struct {
 	AccessKeyID     string
 	SecretAccessKey string
@@ -169,7 +188,10 @@ func (r *R2Service) UploadFromBytes(ctx context.Context, data []byte, originalNa
 		key = fmt.Sprintf("%s/%s", strings.Trim(folder, "/"), filename)
 	}
 
-	contentType := mime.TypeByExtension(ext)
+	contentType := AudioMIMEByExt[strings.ToLower(ext)]
+	if contentType == "" {
+		contentType = mime.TypeByExtension(ext)
+	}
 	if contentType == "" {
 		contentType = http.DetectContentType(data)
 	}
